@@ -964,32 +964,6 @@ document.addEventListener('DOMContentLoaded', function () {
       // Scroll to top
       window.scrollTo(0, 0);
     }
-
-    // Footer links
-    const privacyLinks = document.querySelectorAll('[id^="privacy-link"]');
-    const termsLinks = document.querySelectorAll('[id^="terms-link"]');
-    const contactLinks = document.querySelectorAll('[id^="contact-link"]');
-
-    privacyLinks.forEach(link => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        alert('Privacy & Security page would open here.');
-      });
-    });
-
-    termsLinks.forEach(link => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        alert('Terms of Service page would open here.');
-      });
-    });
-
-    contactLinks.forEach(link => {
-      link.addEventListener('click', function (e) {
-        e.preventDefault();
-        alert('Contact Us page would open here.');
-      });
-    });
   });
 
   // Blob Background Animation
