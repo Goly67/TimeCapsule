@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Time Capsule</title>
+
+  <!-- Google Fonts - Poppins + Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/11327/11327008.png" type="image/x-icon">
+  <link rel="stylesheet" href="styles/login.css">
+</head>
+<body>
+  <!-- Blob Background Canvas -->
+  <canvas id="blob-canvas"></canvas>
+
+  <div class="page-wrapper">
+    <div class="page-content">
+      <div class="auth-container">
+        <div class="auth-logo">
+          <h1>Time Capsule</h1>
+        </div>
+        <div class="auth-card">
+          <h2 class="auth-title">Log In</h2>
+          
+          <div id="error-message" class="error-message" style="display: none;"></div>
+          
+          <form id="login-form">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block" id="login-button">
+              <span id="login-text">Log In</span>
+              <span id="login-spinner" class="loading-spinner" style="display: none;"></span>
+            </button>
+          </form>
+          
+          <div class="auth-footer">
+            <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="other/p&s.html" class="footer-link" >Privacy & Security</a>
+          <a href="other/terms.html" class="footer-link" >Terms of Service</a>
+          <a href="other/about.html" class="footer-link" >About Us</a>
+        </div>
+        <div class="footer-copyright">
+          &copy; 2025 Time Capsule. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="scripts/login.js" defer></script>
+</body>
+</html>

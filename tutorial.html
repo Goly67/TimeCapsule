@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Capsule - Tutorial</title>
+
+  <!-- Google Fonts - Poppins + Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/11327/11327008.png" type="image/x-icon">
+  <link rel="stylesheet" href="styles/tutorial.css">
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="page-content">
+      <div class="container">
+        <div class="tutorial-header">
+          <h1 class="tutorial-logo">Time Capsule</h1>
+          <h2 class="tutorial-title">Welcome to Time Capsule!</h2>
+          <p class="tutorial-subtitle">Let's get you started with creating and managing your time capsules.</p>
+        </div>
+
+        <!-- Updated tutorial steps structure -->
+        <div class="tutorial-steps">
+          <div class="tutorial-step">
+            <div class="step-number active" id="step-indicator-1">1</div>
+            <div class="step-label active" id="step-label-1">Welcome</div>
+          </div>
+          <div class="step-connector" id="connector-1"></div>
+          <div class="tutorial-step">
+            <div class="step-number" id="step-indicator-2">2</div>
+            <div class="step-label" id="step-label-2">Features</div>
+          </div>
+          <div class="step-connector" id="connector-2"></div>
+          <div class="tutorial-step">
+            <div class="step-number" id="step-indicator-3">3</div>
+            <div class="step-label" id="step-label-3">Get Started</div>
+          </div>
+        </div>
+
+        <div class="tutorial-cards-container">
+          <div class="tutorial-card active" id="step-1">
+            <h3 class="tutorial-card-title">Welcome to Your Time Capsule Journey</h3>
+            <p class="tutorial-card-subtitle">Time Capsule allows you to preserve memories today and rediscover them in the future.</p>
+            
+            <div class="tutorial-content">
+              <p>Thank you for joining Time Capsule! We're excited to help you create meaningful digital time capsules that can be opened at a future date of your choosing.</p>
+              <p>With Time Capsule, you can:</p>
+              <ul style="margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                <li>Write letters to your future self or loved ones</li>
+                <li>Upload photos that capture special moments</li>
+                <li>Record video messages to bring your memories to life</li>
+                <li>Set a future date when your capsule will be "delivered"</li>
+                <li>Share your capsules with friends and family</li>
+              </ul>
+              <p>Let's walk through the key features to help you get started!</p>
+            </div>
+            
+            <div class="tutorial-actions">
+              <div></div>
+              <button type="button" class="btn btn-primary" id="next-step-1">Next</button>
+            </div>
+          </div>
+
+          <div class="tutorial-card" id="step-2">
+            <h3 class="tutorial-card-title">Key Features</h3>
+            <p class="tutorial-card-subtitle">Discover what you can do with Time Capsule.</p>
+            
+            <div class="tutorial-content">
+              <div class="tutorial-feature">
+                <div class="tutorial-feature-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+                <div class="tutorial-feature-content">
+                  <h3>Write Letters</h3>
+                  <p>Compose heartfelt messages to your future self or loved ones. Share your current thoughts, goals, and experiences that you want to remember years from now.</p>
+                </div>
+              </div>
+              
+              <div class="tutorial-feature">
+                <div class="tutorial-feature-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="tutorial-feature-content">
+                  <h3>Upload Photos</h3>
+                  <p>Add images that capture special moments, people, or places. These visual memories will be preserved exactly as they are today for you to rediscover in the future.</p>
+                </div>
+              </div>
+              
+              <div class="tutorial-feature">
+                <div class="tutorial-feature-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="tutorial-feature-content">
+                  <h3>Record Videos</h3>
+                  <p>Create video messages that bring your memories to life. Record yourself speaking directly to your future self or loved ones for a more personal connection across time.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="tutorial-actions">
+              <button type="button" class="btn btn-outline" id="prev-step-2">Back</button>
+              <button type="button" class="btn btn-primary" id="next-step-2">Next</button>
+            </div>
+          </div>
+
+          <div class="tutorial-card" id="step-3">
+            <h3 class="tutorial-card-title">Ready to Get Started?</h3>
+            <p class="tutorial-card-subtitle">You're all set to begin creating your first time capsule!</p>
+            
+            <div class="tutorial-content">
+              <p>Now that you understand the basics of Time Capsule, you're ready to create your first capsule. Here's what to do next:</p>
+              
+              <ol style="margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                <li>Click the "Create a Time Capsule" button on the home page</li>
+                <li>Give your capsule a title and choose a delivery date</li>
+                <li>Add letters, photos, or videos to your capsule</li>
+                <li>Submit your capsule to seal it until the delivery date</li>
+                <li>Optionally, share your capsule with others</li>
+              </ol>
+              
+              <p>Your capsules will be stored securely and will be available to view after the delivery date you choose. You can always view your list of capsules from the "View Your Capsules" section.</p>
+              
+              <p style="margin-top: 1rem;">Click "Complete Tutorial" below to go to the home page and start creating your first time capsule!</p>
+            </div>
+            
+            <div class="tutorial-actions">
+              <button type="button" class="btn btn-outline" id="prev-step-3">Back</button>
+              <button type="button" class="btn btn-primary" id="complete-tutorial">Complete Tutorial</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="other/p&s.html" class="footer-link" >Privacy & Security</a>
+          <a href="other/terms.html" class="footer-link" >Terms of Service</a>
+          <a href="other/about.html" class="footer-link" >About Us</a>
+        </div>
+        <div class="footer-copyright">
+          &copy; 2025 Time Capsule. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="scripts/tutorial.js"></script>
+</body>
+</html>

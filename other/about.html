@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Capsule - About Us</title>
+
+  <!-- Google Fonts - Poppins + Roboto -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/11327/11327008.png" type="image/x-icon">
+  <link rel="stylesheet" href="styles/about.css">
+</head>
+
+<body>
+  <!-- Blob Background Canvas -->
+  <canvas id="blob-canvas"></canvas>
+
+  <div class="page-wrapper">
+    <div class="page-content">
+      <div class="container py-4">
+        <a href="../index.html" class="back-button">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24"
+            height="24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Home
+        </a>
+
+        <h1>About Us</h1>
+        <p class="mb-6">Welcome to Time Capsule! Learn more about the project and the developer behind it.</p>
+
+        <div class="about-layout">
+          <div class="about-section">
+            <div class="developer-profile">
+              <img src="https://scontent.fcgy1-3.fna.fbcdn.net/v/t39.30808-1/486066207_1800518920806854_7742192143340319540_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=101&ccb=1-7&_nc_sid=1d2534&_nc_eui2=AeE8jfC5iM12elVnpry_FiopBQA2Rj1qI-gFADZGPWoj6Fukm3N1fKnVQtkvv-FuLiwbVzkPqoznLESyuDKwC7Vf&_nc_ohc=w5cMX5HNhEIQ7kNvgFly4kD&_nc_oc=AdnL-M93a5vS198hlQwJMa8PPIynZ5KC8Fqu4a690NcXaNUuWVZqb5bvD6nvVcm81hKn2ZPK5JkLYhy_E-m5tn0u&_nc_zt=24&_nc_ht=scontent.fcgy1-3.fna&_nc_gid=UQEouJ3I0r-Mag1YxsGphA&oh=00_AYEJIo3Kofj6DDwlGLW4vD5CT_if5H2mMy2ixPb9cjsuxw&oe=67F072E5" alt="Developer Profile" class="developer-image">
+              <h2 class="developer-name">Sam Yu</h2>
+              <p class="developer-title">SHS (Amateur) Web Developer at STI</p>
+            </div>
+
+            <div class="about-text">
+              <p>Hello! I'm a passionate high school student at STI College, currently learning web development and exploring the exciting world of programming.</p>
+              
+              <p>Time Capsule is my personal project that I developed as part of my web development journey. The idea came from wanting to create something meaningful that helps people preserve their memories in a digital format.</p>
+              
+              <p>As a student developer, I'm constantly learning and improving my skills. This project represents my current abilities, and I'm excited to continue enhancing it as I grow as a developer.</p>
+            </div>
+
+            <div class="skills-section">
+              <h3>Skills & Technologies</h3>
+              <div class="skills-list">
+                <span class="skill-tag">HTML5</span>
+                <span class="skill-tag">CSS3</span>
+                <span class="skill-tag">JavaScript</span>
+                <span class="skill-tag">Responsive Design</span>
+                <span class="skill-tag">UI/UX Design</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="contact-info">
+              <div class="contact-method">
+                <div class="contact-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div class="contact-details">
+                  <h4>Email</h4>
+                  <p>forestparty223@gmail.com</p>
+                </div>
+              </div>
+
+              <div class="contact-method">
+                <div class="contact-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div class="contact-details">
+                  <h4>Phone</h4>
+                  <p>09272817978</p>
+                </div>
+              </div>
+
+              <div class="contact-method">
+                <div class="contact-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div class="contact-details">
+                  <h4>Address</h4>
+                  <p>Surigao City</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Office Hours</h3>
+              <p>Monday - Friday: 11:00 AM - 3:00 PM<br>
+                Saturday: 12:00 PM - 5:00 PM<br>
+                Sunday: Closed</p>
+              <p>Feel free to reach out with any questions or feedback about the Time Capsule project!</p>
+            </div>
+
+            <div class="card">
+              <h3>Project Mission</h3>
+              <p>Time Capsule aims to provide a secure and intuitive way for people to preserve their memories digitally and share them with loved ones at a future date.</p>
+              <p>Our goal is to create a platform that combines nostalgia with modern technology, allowing users to capture moments that matter and deliver them exactly when they want.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="p&s.html" class="footer-link">Privacy & Security</a>
+          <a href="terms.html" class="footer-link">Terms of Service</a>
+          <a href="about.html" class="footer-link">About Us</a>
+        </div>
+        <div class="footer-copyright">
+          &copy; 2025 Time Capsule. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="scripts/about.js"></script>
+</body>
+
+</html>

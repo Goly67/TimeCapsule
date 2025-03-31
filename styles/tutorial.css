@@ -1,0 +1,310 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    background-color: #f9fafb;
+    color: #1f2937;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4, h5, h6, .logo {
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  p, input, textarea, button {
+    font-family: 'Roboto', sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  /* Container */
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: none;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .btn-primary {
+    background-color: #3d7059;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #325a49;
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    border: 1px solid #3d7059;
+    color: #3d7059;
+  }
+
+  .btn-outline:hover {
+    background-color: #f2f7f4;
+  }
+
+  /* Page wrapper */
+  .page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-content {
+    flex: 1 0 auto;
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Tutorial */
+  .tutorial-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .tutorial-logo {
+    font-size: 2rem;
+    color: #325a49;
+    margin-bottom: 1rem;
+  }
+
+  .tutorial-title {
+    font-size: 1.75rem;
+    color: #2b4a3d;
+    margin-bottom: 0.5rem;
+  }
+
+  .tutorial-subtitle {
+    color: #4b5563;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Fixed tutorial steps styling */
+  .tutorial-steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .tutorial-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .step-number {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: #e5e7eb;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-number.active {
+    background-color: #3d7059;
+    color: white;
+  }
+
+  .step-number.completed {
+    background-color: #3d7059;
+    color: white;
+  }
+
+  .step-label {
+    font-size: 0.875rem;
+    color: #4b5563;
+    text-align: center;
+  }
+
+  .step-label.active {
+    color: #3d7059;
+    font-weight: 500;
+  }
+
+  .step-connector {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #e5e7eb;
+    margin: 0 0.5rem;
+    position: relative;
+    top: -1.25rem; /* Position the connector in the middle of the circles */
+  }
+
+  .step-connector.active {
+    background-color: #3d7059;
+  }
+
+  .tutorial-cards-container {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+    min-height: 400px;
+    margin-bottom: 2rem;
+  }
+
+  .tutorial-card {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+    opacity: 0;
+    transform: translateX(50px);
+    pointer-events: none;
+    display: none;
+  }
+
+  .tutorial-card.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+    display: block;
+  }
+
+  .tutorial-card.prev {
+    opacity: 0;
+    transform: translateX(-50px);
+    pointer-events: none;
+    display: none;
+  }
+
+  .tutorial-card-title {
+    font-size: 1.5rem;
+    color: #2b4a3d;
+    margin-bottom: 1rem;
+  }
+
+  .tutorial-card-subtitle {
+    color: #4b5563;
+    margin-bottom: 1.5rem;
+  }
+
+  .tutorial-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+  }
+
+  /* Tutorial Content */
+  .tutorial-content {
+    margin-bottom: 2rem;
+  }
+
+  .tutorial-feature {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+  }
+
+  .tutorial-feature-icon {
+    width: 3rem;
+    height: 3rem;
+    background-color: #e0ede5;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  .tutorial-feature-icon svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: #3d7059;
+  }
+
+  .tutorial-feature-content h3 {
+    font-size: 1.25rem;
+    color: #2b4a3d;
+    margin-bottom: 0.5rem;
+  }
+
+  .tutorial-feature-content p {
+    color: #4b5563;
+  }
+
+  /* Footer */
+  .footer {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 1.5rem 0;
+    border-top: 1px solid #e0ede5;
+    margin-top: auto;
+    flex-shrink: 0;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .footer-link {
+    color: #325a49;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .footer-copyright {
+    text-align: center;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
