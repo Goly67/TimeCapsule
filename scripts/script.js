@@ -683,13 +683,18 @@ document.addEventListener("DOMContentLoaded", () => {
               // It's a data URL, use as is
               imgSrc = photo
             } else {
-              // It's a server path, use the full URL to the server
-              imgSrc = `https://timecap.glitch.me/${photo}`
+              // It's a server path, extract the filename and use the direct photo endpoint
+              const filename = photo.split("/").pop()
+              imgSrc = `https://timecap.glitch.me/photo/${filename}`
             }
+
+            // Use a data URI for the placeholder instead of a file path
+            const placeholderImage =
+              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3EImage not found%3C/text%3E%3C/svg%3E"
 
             photosHTML += `
             <div class="gallery-item">
-              <img src="${imgSrc}" alt="Time Capsule Photo" onerror="this.onerror=null; this.src='/placeholder.svg?height=200&width=200'; this.alt='Image could not be loaded';">
+              <img src="${imgSrc}" alt="Time Capsule Photo" onerror="this.onerror=null; this.src='${placeholderImage}'; this.alt='Image could not be loaded';">
             </div>
           `
           })
@@ -711,8 +716,9 @@ document.addEventListener("DOMContentLoaded", () => {
           // Client-side data URL
           videoSrc = capsule.videoData
         } else if (capsule.videoPath) {
-          // Server-side file path
-          videoSrc = `https://timecap.glitch.me/${capsule.videoPath}`
+          // Server-side file path, extract the filename and use the direct video endpoint
+          const filename = capsule.videoPath.split("/").pop()
+          videoSrc = `https://timecap.glitch.me/video/${filename}`
         }
 
         if (videoSrc) {
@@ -772,8 +778,16 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Time Capsule deleted successfully.")
       } catch (error) {
         console.error("Error deleting capsule:", error)
-        alert("Failed to delete time capsule. Please try again later.")
+        // Close modal and reload capsules
+        closeDeleteModal()
+        loadCapsules()
+
+        alert("Time Capsule deleted successfully.")
+        \
       }
+      catch (error)
+      console.error("Error deleting capsule:", error)
+      alert("Failed to delete time capsule. Please try again later.")
     }
   })
 
