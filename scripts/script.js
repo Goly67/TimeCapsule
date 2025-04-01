@@ -547,61 +547,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Add this function to handle sharing a capsule
-  async function shareCapsule(capsuleId) {
-    try {
-      // Call the server to create a share
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/share`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ shareType: "link" }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to share capsule")
-      }
-
-      const result = await response.json()
-      return result.shareUrl || `${window.location.origin}${window.location.pathname}?capsule=${capsuleId}`
-    } catch (error) {
-      console.error("Error sharing capsule:", error)
-      // Fallback to client-side share URL generation
-      return `${window.location.origin}${window.location.pathname}?capsule=${capsuleId}`
-    }
-  }
-
-  // Update the openShareModal function to use the new shareCapsule function
-  function openShareModal(capsuleId) {
-    capsuleToShare = capsuleId
-
-    // Show loading state
-    shareLink.value = "Generating share link..."
-    shareModal.classList.add("active")
-
-    // Generate share link
-    shareCapsule(capsuleId)
-      .then((shareUrl) => {
-        shareLink.value = shareUrl
-      })
-      .catch((error) => {
-        console.error("Error generating share link:", error)
-        shareLink.value = `${window.location.origin}${window.location.pathname}?capsule=${capsuleId}`
-      })
-  }
-
-  // Update the loadSharedCapsule function to use the new API endpoint
+  // Load shared capsule
   async function loadSharedCapsule(capsuleId) {
     try {
-      // Try to fetch capsule from server using the shared endpoint
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/shared`)
+      // Try to fetch capsule from server
+      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${capsuleId}`)
 
       let capsule
 
       if (response.ok) {
-        capsule = await response.json()
-      } else {
+        const capsules = await response.json()
+        capsule = capsules.find((c) => c.id === capsuleId)
+      }
+
+      if (!capsule) {
         // Fallback to localStorage if server request fails
         const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
         capsule = allCapsules.find((c) => c.id === capsuleId)
@@ -646,59 +605,41 @@ document.addEventListener("DOMContentLoaded", () => {
         const messageSection = document.createElement("div")
         messageSection.className = "mb-6"
         messageSection.innerHTML = `
-        <div class="content-header">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          <h3>Message</h3>
-        </div>
-        <div class="bg-forest-green-50 p-4 rounded-lg">
-          <p style="white-space: pre-wrap;">${capsule.message}</p>
-        </div>
-      `
+            <div class="content-header">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <h3>Message</h3>
+            </div>
+            <div class="bg-forest-green-50 p-4 rounded-lg">
+              <p style="white-space: pre-wrap;">${capsule.message}</p>
+            </div>
+          `
         contentContainer.appendChild(messageSection)
       }
 
       // Add photos if exist
-      if (capsule.hasImages) {
+      if (capsule.hasImages && Array.isArray(capsule.photos) && capsule.photos.length > 0) {
         const photosSection = document.createElement("div")
         photosSection.className = "mb-6"
 
         let photosHTML = `
-        <div class="content-header">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <h3>Photos</h3>
-        </div>
-        <div class="image-gallery">
-      `
-
-        // Handle both server-side paths and client-side data URLs
-        if (Array.isArray(capsule.photos)) {
-          capsule.photos.forEach((photo) => {
-            // Check if it's a data URL or a file path
-            let imgSrc
-            if (photo.startsWith("data:")) {
-              // It's a data URL, use as is
-              imgSrc = photo
-            } else {
-              // It's a server path, extract the filename and use the direct photo endpoint
-              const filename = photo.split("/").pop()
-              imgSrc = `https://timecap.glitch.me/photo/${filename}`
-            }
-
-            // Use a data URI for the placeholder instead of a file path
-            const placeholderImage =
-              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='14' text-anchor='middle' dominant-baseline='middle' fill='%23999'%3EImage not found%3C/text%3E%3C/svg%3E"
-
-            photosHTML += `
-            <div class="gallery-item">
-              <img src="${imgSrc}" alt="Time Capsule Photo" onerror="this.onerror=null; this.src='${placeholderImage}'; this.alt='Image could not be loaded';">
+            <div class="content-header">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3>Photos</h3>
             </div>
+            <div class="image-gallery">
           `
-          })
-        }
+
+        capsule.photos.forEach((photo) => {
+          photosHTML += `
+              <div class="gallery-item">
+                <img src="${photo}" alt="Time Capsule Photo">
+              </div>
+            `
+        })
 
         photosHTML += `</div>`
         photosSection.innerHTML = photosHTML
@@ -706,35 +647,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // Add video if exists
-      if (capsule.hasVideo) {
+      if (capsule.hasVideo && capsule.videoData) {
         const videoSection = document.createElement("div")
         videoSection.className = "mb-6"
-
-        // Handle both server-side paths and client-side data URLs
-        let videoSrc = ""
-        if (capsule.videoData) {
-          // Client-side data URL
-          videoSrc = capsule.videoData
-        } else if (capsule.videoPath) {
-          // Server-side file path, extract the filename and use the direct video endpoint
-          const filename = capsule.videoPath.split("/").pop()
-          videoSrc = `https://timecap.glitch.me/video/${filename}`
-        }
-
-        if (videoSrc) {
-          videoSection.innerHTML = `
-          <div class="content-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <h3>Video Message</h3>
-          </div>
-          <div class="video-container">
-            <video controls src="${videoSrc}" onerror="this.onerror=null; this.style.display='none'; this.parentNode.innerHTML += '<p>Video could not be loaded</p>'"></video>
-          </div>
-        `
-          contentContainer.appendChild(videoSection)
-        }
+        videoSection.innerHTML = `
+            <div class="content-header">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <h3>Video Message</h3>
+            </div>
+            <div class="video-container">
+              <video controls src="${capsule.videoData}"></video>
+            </div>
+          `
+        contentContainer.appendChild(videoSection)
       }
     } catch (error) {
       console.error("Error loading shared capsule:", error)
@@ -778,16 +705,8 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Time Capsule deleted successfully.")
       } catch (error) {
         console.error("Error deleting capsule:", error)
-        // Close modal and reload capsules
-        closeDeleteModal()
-        loadCapsules()
-
-        alert("Time Capsule deleted successfully.")
-        \
+        alert("Failed to delete time capsule. Please try again later.")
       }
-      catch (error)
-      console.error("Error deleting capsule:", error)
-      alert("Failed to delete time capsule. Please try again later.")
     }
   })
 
@@ -796,6 +715,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareModal = document.getElementById("share-modal")
   const shareLink = document.getElementById("share-link")
   const copyLinkBtn = document.getElementById("copy-link-btn")
+
+  function openShareModal(capsuleId) {
+    capsuleToShare = capsuleId
+
+    // Generate share link
+    const shareUrl = `${window.location.origin}${window.location.pathname}?capsule=${capsuleId}`
+    shareLink.value = shareUrl
+
+    // Show modal
+    shareModal.classList.add("active")
+  }
 
   function closeShareModal() {
     shareModal.classList.remove("active")
