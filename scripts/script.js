@@ -678,10 +678,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (Array.isArray(capsule.photos)) {
           capsule.photos.forEach((photo) => {
             // Check if it's a data URL or a file path
-            const imgSrc = photo.startsWith("data:") ? photo : `/uploads/${photo.split("/uploads/")[1]}`
+            let imgSrc
+            if (photo.startsWith("data:")) {
+              // It's a data URL, use as is
+              imgSrc = photo
+            } else {
+              // It's a server path, use the full URL to the server
+              imgSrc = `https://timecap.glitch.me/${photo}`
+            }
+
             photosHTML += `
             <div class="gallery-item">
-              <img src="${imgSrc}" alt="Time Capsule Photo">
+              <img src="${imgSrc}" alt="Time Capsule Photo" onerror="this.onerror=null; this.src='/placeholder.svg?height=200&width=200'; this.alt='Image could not be loaded';">
             </div>
           `
           })
@@ -704,7 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
           videoSrc = capsule.videoData
         } else if (capsule.videoPath) {
           // Server-side file path
-          videoSrc = `/uploads/${capsule.videoPath.split("/uploads/")[1]}`
+          videoSrc = `https://timecap.glitch.me/${capsule.videoPath}`
         }
 
         if (videoSrc) {
@@ -716,7 +724,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <h3>Video Message</h3>
           </div>
           <div class="video-container">
-            <video controls src="${videoSrc}"></video>
+            <video controls src="${videoSrc}" onerror="this.onerror=null; this.style.display='none'; this.parentNode.innerHTML += '<p>Video could not be loaded</p>'"></video>
           </div>
         `
           contentContainer.appendChild(videoSection)
@@ -1103,3 +1111,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   animate()
 })()
+
