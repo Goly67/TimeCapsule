@@ -16,6 +16,12 @@
 </head>
 
 <body>
+  <!-- Beta Banner -->
+  <div class="beta-banner">
+    <span class="beta-tag">BETA</span>
+    <span class="beta-message">We're still improving! Your feedback helps us make Time Capsule better.</span>
+  </div>
+
   <!-- Blob Background Canvas -->
   <canvas id="blob-canvas"></canvas>
 
@@ -44,78 +50,29 @@
     </div>
   </div>
 
-  <!-- Share Modal -->
-  <div id="share-modal" class="modal-overlay">
+  <!-- Recipients Search Modal -->
+  <div id="recipients-modal" class="modal-overlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 class="modal-title">Share Time Capsule</h3>
-        <button class="modal-close" onclick="closeShareModal()">
-
+        <h3 class="modal-title">Add Recipients</h3>
+        <button class="modal-close" onclick="closeRecipientsModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
+            height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
-        <p>Share this time capsule with others. They will be able to view it after the delivery date.</p>
-
-        <div class="share-modal-content">
-          <div class="share-options">
-            <div class="share-option" id="copy-link-option">
-              <div class="share-option-icon link">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#3d7059">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              </div>
-              <div class="share-option-content">
-                <div class="share-option-title">Copy Link</div>
-                <div class="share-option-description">Copy a link to share directly with others</div>
-              </div>
-            </div>
-
-            <div class="share-option" id="email-share-option">
-              <div class="share-option-icon email">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#4f46e5">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div class="share-option-content">
-                <div class="share-option-title">Email</div>
-                <div class="share-option-description">Send a link via email</div>
-              </div>
-            </div>
-
-            <div class="share-option" id="social-share-option">
-              <div class="share-option-icon social">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#0ea5e9">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </div>
-              <div class="share-option-content">
-                <div class="share-option-title">Social Media</div>
-                <div class="share-option-description">Share on social platforms</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="share-link">Share Link</label>
-            <div class="share-link-container">
-              <input type="text" id="share-link" class="share-link-input" readonly>
-              <button id="copy-link-btn" class="btn btn-outline btn-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
-                  height="20">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy
-              </button>
-            </div>
-          </div>
+        <p>Add people who can view this time capsule after the delivery date.</p>
+        <div class="form-group">
+          <input type="text" id="recipient-search" placeholder="Search by name or email..." class="recipient-search-input">
+          <div id="recipient-search-results" class="recipient-search-results"></div>
         </div>
+        <div id="selected-recipients" class="selected-recipients"></div>
       </div>
       <div class="modal-footer">
-        <h3 class="modal-title">You can close this by clicking outside.</h3>
+        <button class="btn btn-outline" onclick="closeRecipientsModal()">Cancel</button>
+        <button id="confirm-recipients-btn" class="btn btn-primary">Add Recipients</button>
       </div>
     </div>
   </div>
@@ -283,8 +240,13 @@
               </div>
 
               <div class="form-group">
-                <label for="recipient">Recipient (optional)</label>
-                <input type="text" id="recipient" placeholder="Future me or recipient's email">
+                <label for="recipient">Recipients</label>
+                <div class="recipient-field">
+                  <div id="recipient-tags" class="recipient-tags"></div>
+                  <input type="text" id="recipient" placeholder="Add recipients..." autocomplete="off">
+                  <div id="recipient-dropdown" class="recipient-dropdown"></div>
+                </div>
+                <small class="form-text">Add people who can view this capsule after delivery</small>
               </div>
 
               <div class="form-group">
@@ -448,6 +410,8 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
   <script src="scripts/script.js" defer></script>
 </body>

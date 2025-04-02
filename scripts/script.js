@@ -259,6 +259,149 @@ document.addEventListener("DOMContentLoaded", () => {
     videoDataUrl = null
   })
 
+  // Recipients functionality
+  const recipientInput = document.getElementById("recipient")
+  const recipientDropdown = document.getElementById("recipient-dropdown")
+  const recipientTags = document.getElementById("recipient-tags")
+  let selectedRecipients = []
+
+  // Update the recipient input event listener to fetch users from server
+  recipientInput.addEventListener("input", async () => {
+    const query = recipientInput.value.trim().toLowerCase()
+
+    if (query.length < 2) {
+      recipientDropdown.innerHTML = ""
+      recipientDropdown.classList.remove("active")
+      return
+    }
+
+    try {
+      // Fetch users from server
+      const response = await fetch(`https://timecap.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to search users")
+      }
+
+      const { users } = await response.json()
+
+      // Display results
+      if (users && users.length > 0) {
+        recipientDropdown.innerHTML = ""
+
+        users.forEach((user) => {
+          // Skip if already selected
+          if (selectedRecipients.some((r) => r.id === user.id)) return
+
+          const item = document.createElement("div")
+          item.className = "recipient-dropdown-item"
+          item.innerHTML = `
+          <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
+          <div class="recipient-info">
+            <div class="recipient-name">${user.name}</div>
+            <div class="recipient-email">${user.email}</div>
+          </div>
+        `
+
+          item.addEventListener("click", () => {
+            addRecipient(user)
+            recipientInput.value = ""
+            recipientDropdown.innerHTML = ""
+            recipientDropdown.classList.remove("active")
+          })
+
+          recipientDropdown.appendChild(item)
+        })
+
+        recipientDropdown.classList.add("active")
+      } else {
+        recipientDropdown.innerHTML = ""
+        recipientDropdown.classList.remove("active")
+      }
+    } catch (error) {
+      console.error("Error searching users:", error)
+
+      // Fallback to local search if server search fails
+      const allUsers = JSON.parse(localStorage.getItem("users") || "[]")
+      const filteredUsers = allUsers.filter(
+        (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+      )
+
+      if (filteredUsers.length > 0) {
+        recipientDropdown.innerHTML = ""
+
+        filteredUsers.forEach((user) => {
+          // Skip if already selected
+          if (selectedRecipients.some((r) => r.id === user.id)) return
+
+          const item = document.createElement("div")
+          item.className = "recipient-dropdown-item"
+          item.innerHTML = `
+          <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
+          <div class="recipient-info">
+            <div class="recipient-name">${user.name}</div>
+            <div class="recipient-email">${user.email}</div>
+          </div>
+        `
+
+          item.addEventListener("click", () => {
+            addRecipient(user)
+            recipientInput.value = ""
+            recipientDropdown.innerHTML = ""
+            recipientDropdown.classList.remove("active")
+          })
+
+          recipientDropdown.appendChild(item)
+        })
+
+        recipientDropdown.classList.add("active")
+      } else {
+        recipientDropdown.innerHTML = ""
+        recipientDropdown.classList.remove("active")
+      }
+    }
+  })
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!recipientInput.contains(e.target) && !recipientDropdown.contains(e.target)) {
+      recipientDropdown.classList.remove("active")
+    }
+  })
+
+  // Add recipient
+  function addRecipient(user) {
+    if (selectedRecipients.some((r) => r.id === user.id)) return
+
+    selectedRecipients.push(user)
+
+    const tag = document.createElement("div")
+    tag.className = "recipient-tag"
+    tag.innerHTML = `
+      <span>${user.name}</span>
+      <span class="recipient-tag-remove" data-id="${user.id}">×</span>
+    `
+
+    tag.querySelector(".recipient-tag-remove").addEventListener("click", () => {
+      removeRecipient(user.id)
+    })
+
+    recipientTags.appendChild(tag)
+  }
+
+  // Remove recipient
+  function removeRecipient(userId) {
+    selectedRecipients = selectedRecipients.filter((r) => r.id !== userId)
+
+    const tags = recipientTags.querySelectorAll(".recipient-tag")
+    tags.forEach((tag) => {
+      const removeBtn = tag.querySelector(".recipient-tag-remove")
+      if (removeBtn && removeBtn.getAttribute("data-id") === userId) {
+        tag.remove()
+      }
+    })
+  }
+
   // Create capsule form submission
   const createCapsuleForm = document.getElementById("create-capsule-form")
 
@@ -266,7 +409,6 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault()
 
     const title = document.getElementById("title").value
-    const recipient = document.getElementById("recipient").value
     const deliveryDate = document.getElementById("delivery-date").value
     const message = document.getElementById("message").value
 
@@ -281,11 +423,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // Create FormData for file uploads
     const formData = new FormData()
     formData.append("title", title)
-    formData.append("recipient", recipient)
     formData.append("deliveryDate", new Date(deliveryDate).toISOString())
     formData.append("message", message)
     formData.append("userId", currentUser.id)
     formData.append("userName", currentUser.name)
+
+    // Add recipients
+    if (selectedRecipients.length > 0) {
+      formData.append("recipients", JSON.stringify(selectedRecipients))
+    }
 
     // Add photos if any
     if (uploadedPhotos.length > 0) {
@@ -308,7 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("hasImages", "false")
     }
 
-    // Add video if recorded - this part is already correct
+    // Add video if recorded
     if (videoDataUrl) {
       // Fetch the blob from the URL
       const response = await fetch(videoDataUrl)
@@ -346,7 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
         id: result.capsuleId || capsuleId,
         title,
         message,
-        recipient,
+        recipients: selectedRecipients,
         createdAt: new Date().toISOString(),
         deliveryDate: new Date(deliveryDate).toISOString(),
         photos: [...uploadedPhotos],
@@ -360,6 +506,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const existingCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
       localStorage.setItem("timeCapsules", JSON.stringify([...existingCapsules, capsule]))
 
+      // If there are recipients, share the capsule with them
+      if (selectedRecipients.length > 0) {
+        try {
+          await shareCapsuleWithRecipients(result.capsuleId || capsuleId, selectedRecipients)
+        } catch (shareError) {
+          console.error("Error sharing capsule:", shareError)
+          // Continue even if sharing fails
+        }
+      }
+
       alert("Time Capsule created successfully!")
 
       // Reset form
@@ -371,6 +527,10 @@ document.addEventListener("DOMContentLoaded", () => {
       videoPreviewContainer.style.display = "none"
       videoPlaceholder.style.display = "block"
 
+      // Clear recipients
+      selectedRecipients = []
+      recipientTags.innerHTML = ""
+
       // Navigate to view page
       navigateTo("view-page")
       loadCapsules()
@@ -379,6 +539,31 @@ document.addEventListener("DOMContentLoaded", () => {
       alert(error.message || "Failed to create time capsule. Please try again.")
     }
   })
+
+  // Share capsule with recipients
+  async function shareCapsuleWithRecipients(capsuleId, recipients) {
+    try {
+      const response = await fetch("https://timecap.glitch.me/api/capsules/" + capsuleId + "/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientIds: recipients.map((r) => r.id),
+          shareType: "direct",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to share capsule with recipients")
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Error sharing capsule:", error)
+      throw error
+    }
+  }
 
   // Load user's capsules
   async function loadCapsules() {
@@ -454,6 +639,19 @@ document.addEventListener("DOMContentLoaded", () => {
             `
         }
 
+        // Show recipients count if any
+        let recipientsInfo = ""
+        if (capsule.recipients && capsule.recipients.length > 0) {
+          recipientsInfo = `
+            <div class="capsule-recipients">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
+            </div>
+          `
+        }
+
         capsuleCard.innerHTML = `
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -473,17 +671,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   </span>
                 </div>
                 
-                <div class="flex flex-wrap gap-2 mb-4">
+                <div class="flex flex-wrap gap-2 mb-2">
                   ${contentTypes}
                 </div>
+                
+                ${recipientsInfo}
               </div>
               
               <div class="flex gap-3" style="gap: 0.8rem;">
                 <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
                   ${isDelivered ? "View" : "Sealed"}
-                </button>
-                <button class="btn btn-outline btn-sm share-capsule-btn" data-id="${capsule.id}">
-                  Share
                 </button>
                 <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
                   Delete
@@ -495,18 +692,11 @@ document.addEventListener("DOMContentLoaded", () => {
         capsulesContainer.appendChild(capsuleCard)
       })
 
-      // Add event listeners to view, share, and delete buttons
+      // Add event listeners to view and delete buttons
       document.querySelectorAll(".view-capsule-btn").forEach((btn) => {
         btn.addEventListener("click", function () {
           const capsuleId = this.getAttribute("data-id")
           viewCapsule(capsuleId)
-        })
-      })
-
-      document.querySelectorAll(".share-capsule-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const capsuleId = this.getAttribute("data-id")
-          openShareModal(capsuleId)
         })
       })
 
@@ -526,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function viewCapsule(capsuleId) {
     try {
       // Try to fetch capsule from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/shared`)
 
       let capsule
 
@@ -539,11 +729,56 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (!capsule) {
+        alert("Capsule not found or has been deleted.")
         return
       }
+
+      // Send notification that capsule was opened
+      try {
+        await sendOpenNotification(capsule)
+      } catch (notifyError) {
+        console.error("Error sending notification:", notifyError)
+        // Continue even if notification fails
+      }
+
+      // Load shared capsule view
+      loadSharedCapsuleView(capsule)
     } catch (error) {
       console.error("Error viewing capsule:", error)
       alert("Failed to view time capsule. Please try again later.")
+    }
+  }
+
+  // Send notification when capsule is opened
+  async function sendOpenNotification(capsule) {
+    // This would connect to a push notification service in a real implementation
+    console.log(`Sending notification for opened capsule: ${capsule.id}`)
+
+    // If the capsule has recipients, notify them
+    if (capsule.recipients && capsule.recipients.length > 0) {
+      try {
+        const response = await fetch("https://timecap.glitch.me/api/notifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            capsuleId: capsule.id,
+            title: capsule.title,
+            recipientIds: capsule.recipients.map((r) => r.id),
+            message: `${currentUser.name} opened the time capsule "${capsule.title}"`,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Failed to send notifications")
+        }
+
+        return await response.json()
+      } catch (error) {
+        console.error("Error sending notifications:", error)
+        throw error
+      }
     }
   }
 
@@ -551,16 +786,13 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadSharedCapsule(capsuleId) {
     try {
       // Try to fetch capsule from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${capsuleId}`)
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/shared`)
 
       let capsule
 
       if (response.ok) {
-        const capsules = await response.json()
-        capsule = capsules.find((c) => c.id === capsuleId)
-      }
-
-      if (!capsule) {
+        capsule = await response.json()
+      } else {
         // Fallback to localStorage if server request fails
         const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
         capsule = allCapsules.find((c) => c.id === capsuleId)
@@ -580,93 +812,99 @@ document.addEventListener("DOMContentLoaded", () => {
         return
       }
 
-      // Show shared capsule page
-      document.querySelectorAll(".page").forEach((page) => {
-        page.classList.remove("active")
-      })
-      document.getElementById("shared-capsule-page").classList.add("active")
-
-      // Set capsule title
-      document.getElementById("shared-capsule-title").textContent = capsule.title
-
-      // Set owner info
-      const ownerInitial = document.querySelector("#shared-capsule-owner .profile-initial")
-      const ownerName = document.querySelector("#shared-capsule-owner .profile-name")
-
-      ownerInitial.textContent = capsule.userName.charAt(0).toUpperCase()
-      ownerName.textContent = capsule.userName
-
-      // Load capsule content
-      const contentContainer = document.getElementById("shared-capsule-content")
-      contentContainer.innerHTML = ""
-
-      // Add message if exists
-      if (capsule.message) {
-        const messageSection = document.createElement("div")
-        messageSection.className = "mb-6"
-        messageSection.innerHTML = `
-            <div class="content-header">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <h3>Message</h3>
-            </div>
-            <div class="bg-forest-green-50 p-4 rounded-lg">
-              <p style="white-space: pre-wrap;">${capsule.message}</p>
-            </div>
-          `
-        contentContainer.appendChild(messageSection)
-      }
-
-      // Add photos if exist
-      if (capsule.hasImages && Array.isArray(capsule.photos) && capsule.photos.length > 0) {
-        const photosSection = document.createElement("div")
-        photosSection.className = "mb-6"
-
-        let photosHTML = `
-            <div class="content-header">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <h3>Photos</h3>
-            </div>
-            <div class="image-gallery">
-          `
-
-        capsule.photos.forEach((photo) => {
-          photosHTML += `
-              <div class="gallery-item">
-                <img src="${photo}" alt="Time Capsule Photo">
-              </div>
-            `
-        })
-
-        photosHTML += `</div>`
-        photosSection.innerHTML = photosHTML
-        contentContainer.appendChild(photosSection)
-      }
-
-      // Add video if exists
-      if (capsule.hasVideo && capsule.videoData) {
-        const videoSection = document.createElement("div")
-        videoSection.className = "mb-6"
-        videoSection.innerHTML = `
-            <div class="content-header">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              <h3>Video Message</h3>
-            </div>
-            <div class="video-container">
-              <video controls src="${capsule.videoData}"></video>
-            </div>
-          `
-        contentContainer.appendChild(videoSection)
-      }
+      // Load shared capsule view
+      loadSharedCapsuleView(capsule)
     } catch (error) {
       console.error("Error loading shared capsule:", error)
       alert("Failed to load shared time capsule. Please try again later.")
       window.location.href = "index.html"
+    }
+  }
+
+  // Load shared capsule view
+  function loadSharedCapsuleView(capsule) {
+    // Show shared capsule page
+    document.querySelectorAll(".page").forEach((page) => {
+      page.classList.remove("active")
+    })
+    document.getElementById("shared-capsule-page").classList.add("active")
+
+    // Set capsule title
+    document.getElementById("shared-capsule-title").textContent = capsule.title
+
+    // Set owner info
+    const ownerInitial = document.querySelector("#shared-capsule-owner .profile-initial")
+    const ownerName = document.querySelector("#shared-capsule-owner .profile-name")
+
+    ownerInitial.textContent = capsule.userName.charAt(0).toUpperCase()
+    ownerName.textContent = capsule.userName
+
+    // Load capsule content
+    const contentContainer = document.getElementById("shared-capsule-content")
+    contentContainer.innerHTML = ""
+
+    // Add message if exists
+    if (capsule.message) {
+      const messageSection = document.createElement("div")
+      messageSection.className = "mb-6"
+      messageSection.innerHTML = `
+          <div class="content-header">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <h3>Message</h3>
+          </div>
+          <div class="bg-forest-green-50 p-4 rounded-lg">
+            <p style="white-space: pre-wrap;">${capsule.message}</p>
+          </div>
+        `
+      contentContainer.appendChild(messageSection)
+    }
+
+    // Add photos if exist
+    if (capsule.hasImages && Array.isArray(capsule.photos) && capsule.photos.length > 0) {
+      const photosSection = document.createElement("div")
+      photosSection.className = "mb-6"
+
+      let photosHTML = `
+          <div class="content-header">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3>Photos</h3>
+          </div>
+          <div class="image-gallery">
+        `
+
+      capsule.photos.forEach((photo) => {
+        photosHTML += `
+            <div class="gallery-item">
+              <img src="${photo}" alt="Time Capsule Photo">
+            </div>
+          `
+      })
+
+      photosHTML += `</div>`
+      photosSection.innerHTML = photosHTML
+      contentContainer.appendChild(photosSection)
+    }
+
+    // Add video if exists
+    if (capsule.hasVideo && capsule.videoData) {
+      const videoSection = document.createElement("div")
+      videoSection.className = "mb-6"
+      videoSection.innerHTML = `
+          <div class="content-header">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <h3>Video Message</h3>
+          </div>
+          <div class="video-container">
+            <video controls src="${capsule.videoData}"></video>
+          </div>
+        `
+      contentContainer.appendChild(videoSection)
     }
   }
 
@@ -698,11 +936,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const updatedCapsules = allCapsules.filter((c) => c.id !== capsuleToDelete)
         localStorage.setItem("timeCapsules", JSON.stringify(updatedCapsules))
 
-        // Close modal and reload capsules
+        // Close modal
         closeDeleteModal()
-        loadCapsules()
 
         alert("Time Capsule deleted successfully.")
+
+        // Reload the entire page
+        window.location.reload()
       } catch (error) {
         console.error("Error deleting capsule:", error)
         alert("Failed to delete time capsule. Please try again later.")
@@ -710,32 +950,172 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })
 
-  // Share modal
-  let capsuleToShare = null
-  const shareModal = document.getElementById("share-modal")
-  const shareLink = document.getElementById("share-link")
-  const copyLinkBtn = document.getElementById("copy-link-btn")
+  // Recipients modal
+  const recipientsModal = document.getElementById("recipients-modal")
+  const recipientSearch = document.getElementById("recipient-search")
+  const recipientSearchResults = document.getElementById("recipient-search-results")
+  const selectedRecipientsContainer = document.getElementById("selected-recipients")
+  const confirmRecipientsBtn = document.getElementById("confirm-recipients-btn")
+  let modalSelectedRecipients = []
 
-  function openShareModal(capsuleId) {
-    capsuleToShare = capsuleId
-
-    // Generate share link
-    const shareUrl = `${window.location.origin}${window.location.pathname}?capsule=${capsuleId}`
-    shareLink.value = shareUrl
-
-    // Show modal
-    shareModal.classList.add("active")
+  function openRecipientsModal() {
+    // Initialize with current recipients
+    modalSelectedRecipients = [...selectedRecipients]
+    updateSelectedRecipientsUI()
+    recipientsModal.classList.add("active")
   }
 
-  function closeShareModal() {
-    shareModal.classList.remove("active")
-    capsuleToShare = null
+  function closeRecipientsModal() {
+    recipientsModal.classList.remove("active")
+    recipientSearch.value = ""
+    recipientSearchResults.innerHTML = ""
+    recipientSearchResults.classList.remove("active")
   }
 
-  window.addEventListener("click", (event) => {
-    if (event.target === shareModal) {
-      closeShareModal()
+  function updateSelectedRecipientsUI() {
+    selectedRecipientsContainer.innerHTML = ""
+
+    modalSelectedRecipients.forEach((recipient) => {
+      const tag = document.createElement("div")
+      tag.className = "recipient-tag"
+      tag.innerHTML = `
+        <span>${recipient.name}</span>
+        <span class="recipient-tag-remove" data-id="${recipient.id}">×</span>
+      `
+
+      tag.querySelector(".recipient-tag-remove").addEventListener("click", () => {
+        modalSelectedRecipients = modalSelectedRecipients.filter((r) => r.id !== recipient.id)
+        updateSelectedRecipientsUI()
+      })
+
+      selectedRecipientsContainer.appendChild(tag)
+    })
+  }
+
+  // Update the recipient search in the modal as well
+  recipientSearch.addEventListener("input", async () => {
+    const query = recipientSearch.value.trim().toLowerCase()
+
+    if (query.length < 2) {
+      recipientSearchResults.innerHTML = ""
+      recipientSearchResults.classList.remove("active")
+      return
     }
+
+    try {
+      // Fetch users from server
+      const response = await fetch(`https://timecap.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to search users")
+      }
+
+      const { users } = await response.json()
+
+      // Display results
+      if (users && users.length > 0) {
+        recipientSearchResults.innerHTML = ""
+
+        users.forEach((user) => {
+          // Skip if already selected
+          if (modalSelectedRecipients.some((r) => r.id === user.id)) return
+
+          const item = document.createElement("div")
+          item.className = "recipient-search-item"
+          item.innerHTML = `
+          <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
+          <div class="recipient-info">
+            <div class="recipient-name">${user.name}</div>
+            <div class="recipient-email">${user.email}</div>
+          </div>
+        `
+
+          item.addEventListener("click", () => {
+            if (!modalSelectedRecipients.some((r) => r.id === user.id)) {
+              modalSelectedRecipients.push(user)
+              updateSelectedRecipientsUI()
+            }
+            recipientSearch.value = ""
+            recipientSearchResults.innerHTML = ""
+            recipientSearchResults.classList.remove("active")
+          })
+
+          recipientSearchResults.appendChild(item)
+        })
+
+        recipientSearchResults.classList.add("active")
+      } else {
+        recipientSearchResults.innerHTML = ""
+        recipientSearchResults.classList.remove("active")
+      }
+    } catch (error) {
+      console.error("Error searching users:", error)
+
+      // Fallback to local search if server search fails
+      const allUsers = JSON.parse(localStorage.getItem("users") || "[]")
+      const filteredUsers = allUsers.filter(
+        (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+      )
+
+      if (filteredUsers.length > 0) {
+        recipientSearchResults.innerHTML = ""
+
+        filteredUsers.forEach((user) => {
+          // Skip if already selected
+          if (modalSelectedRecipients.some((r) => r.id === user.id)) return
+
+          const item = document.createElement("div")
+          item.className = "recipient-search-item"
+          item.innerHTML = `
+          <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
+          <div class="recipient-info">
+            <div class="recipient-name">${user.name}</div>
+            <div class="recipient-email">${user.email}</div>
+          </div>
+        `
+
+          item.addEventListener("click", () => {
+            if (!modalSelectedRecipients.some((r) => r.id === user.id)) {
+              modalSelectedRecipients.push(user)
+              updateSelectedRecipientsUI()
+            }
+            recipientSearch.value = ""
+            recipientSearchResults.innerHTML = ""
+            recipientSearchResults.classList.remove("active")
+          })
+
+          recipientSearchResults.appendChild(item)
+        })
+
+        recipientSearchResults.classList.add("active")
+      } else {
+        recipientSearchResults.innerHTML = ""
+        recipientSearchResults.classList.remove("active")
+      }
+    }
+  })
+
+  confirmRecipientsBtn.addEventListener("click", () => {
+    selectedRecipients = [...modalSelectedRecipients]
+
+    // Update the recipient tags in the main form
+    recipientTags.innerHTML = ""
+    selectedRecipients.forEach((user) => {
+      const tag = document.createElement("div")
+      tag.className = "recipient-tag"
+      tag.innerHTML = `
+        <span>${user.name}</span>
+        <span class="recipient-tag-remove" data-id="${user.id}">×</span>
+      `
+
+      tag.querySelector(".recipient-tag-remove").addEventListener("click", () => {
+        removeRecipient(user.id)
+      })
+
+      recipientTags.appendChild(tag)
+    })
+
+    closeRecipientsModal()
   })
 
   // Add this function to your JavaScript code
@@ -758,36 +1138,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })
 
-  // Copy link functionality
-  copyLinkBtn.addEventListener("click", () => {
-    shareLink.select()
-    document.execCommand("copy")
-
-    // Change button text temporarily
-    const originalText = copyLinkBtn.innerHTML
-    copyLinkBtn.innerHTML = "Copied!"
-    setTimeout(() => {
-      copyLinkBtn.innerHTML = originalText
-    }, 2000)
-  })
-
-  // Share options
-  document.getElementById("copy-link-option").addEventListener("click", () => {
-    shareLink.select()
-    document.execCommand("copy")
-    alert("Link copied to clipboard!")
-  })
-
-  document.getElementById("email-share-option").addEventListener("click", () => {
-    const subject = "Check out my Time Capsule"
-    const body = `I've created a Time Capsule that will be delivered in the future. Check it out here: ${shareLink.value}`
-    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  })
-
-  document.getElementById("social-share-option").addEventListener("click", () => {
-    alert("In a real app, this would open social media sharing options.")
-  })
-
   // Profile Edit Modal
   const profileEditModal = document.getElementById("profile-edit-modal")
   const profileNameInput = document.getElementById("profile-name")
@@ -795,7 +1145,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const profileModalInitial = document.getElementById("profile-modal-initial")
   const profileModalImage = document.getElementById("profile-modal-image")
   const profileImageInput = document.getElementById("profile-image-input")
-  const profileImageUpload = document.getElementById("profile-image-upload")
   const saveProfileBtn = document.getElementById("save-profile-btn")
   const profileErrorMessage = document.getElementById("profile-error-message")
 
@@ -835,8 +1184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })
 
-  // Save profile changes
-  // Add this to your save profile button event handler
+  // Update the save profile button event handler to reload the page after success
   saveProfileBtn.addEventListener("click", async () => {
     const name = profileNameInput.value.trim()
     const email = profileEmailInput.value.trim()
@@ -866,7 +1214,26 @@ document.addEventListener("DOMContentLoaded", () => {
         profileImage,
       }
 
-      // Skip server update and only update locally
+      // Try to update on server first
+      try {
+        const response = await fetch(`https://timecap.glitch.me/api/users/${currentUser.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedUser),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to update profile on server")
+        }
+      } catch (serverError) {
+        console.error("Server update failed:", serverError)
+        // Continue with local update even if server update fails
+      }
+
+      // Update locally
       localStorage.setItem("currentUser", JSON.stringify(updatedUser))
 
       // Also update in users array if it exists
@@ -887,57 +1254,11 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       localStorage.setItem("timeCapsules", JSON.stringify(updatedCapsules))
 
-      // Update UI
-      document.getElementById("profile-name").textContent = name
-
-      if (profileImage) {
-        document.getElementById("profile-initial").style.display = "none"
-
-        // Check if profile picture already has an image
-        let profileImg = document.querySelector("#profile-picture img")
-
-        if (!profileImg) {
-          profileImg = document.createElement("img")
-          profileImg.alt = "Profile Picture"
-          document.getElementById("profile-picture").appendChild(profileImg)
-        }
-
-        profileImg.src = profileImage
-      } else {
-        document.getElementById("profile-initial").style.display = "block"
-        document.getElementById("profile-initial").textContent = name.charAt(0).toUpperCase()
-
-        const profileImg = document.querySelector("#profile-picture img")
-        if (profileImg) {
-          profileImg.remove()
-        }
-      }
-
-      // Update shared capsule owner name if currently viewing a shared capsule
-      const sharedCapsuleOwnerName = document.querySelector("#shared-capsule-owner .profile-name")
-      if (sharedCapsuleOwnerName) {
-        const urlParams = new URLSearchParams(window.location.search)
-        const sharedCapsuleId = urlParams.get("capsule")
-
-        if (sharedCapsuleId) {
-          const capsule = updatedCapsules.find((c) => c.id === sharedCapsuleId)
-          if (capsule && capsule.userId === currentUser.id) {
-            sharedCapsuleOwnerName.textContent = name
-
-            // Also update the initial
-            const sharedCapsuleOwnerInitial = document.querySelector("#shared-capsule-owner .profile-initial")
-            if (sharedCapsuleOwnerInitial) {
-              sharedCapsuleOwnerInitial.textContent = name.charAt(0).toUpperCase()
-            }
-          }
-        }
-      }
-
-      // Close modal
-      closeProfileModal()
-
       // Show success message
       alert("Profile updated successfully!")
+
+      // Reload the page
+      window.location.reload()
     } catch (error) {
       console.error("Error updating profile:", error)
       profileErrorMessage.textContent = "Failed to update profile. Please try again."
@@ -954,19 +1275,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Show the selected page
     document.getElementById(pageId).classList.add("active")
-
-    // Handle View Capsule to load shared content
-    document.addEventListener("click", async (event) => {
-      const target = event.target
-
-      // Check if the View button was clicked
-      if (target.classList.contains("view-capsule-btn") && target.dataset.id) {
-        const capsuleId = target.dataset.id
-
-        // Load and display the capsule content
-        await loadSharedCapsule(capsuleId)
-      }
-    })
 
     // Scroll to top
     window.scrollTo(0, 0)

@@ -1370,6 +1370,181 @@
     }
   }
 
+  /* Add this to your existing CSS file */
+
+/* Beta Banner */
+.beta-banner {
+  background: linear-gradient(to right, #f59e0b, #d97706);
+  color: white;
+  text-align: center;
+  padding: 8px 16px;
+  position: relative;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.beta-tag {
+  font-weight: bold;
+  margin-right: 8px;
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.beta-message {
+  font-size: 0.9rem;
+}
+
+/* Recipient field styling */
+.recipient-field {
+  position: relative;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  background-color: white;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recipient-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.recipient-tag {
+  background-color: #f3f4f6;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recipient-tag-remove {
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.recipient-tag-remove:hover {
+  color: #ef4444;
+}
+
+.recipient-field input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  padding: 0.25rem 0;
+  background: transparent;
+}
+
+.recipient-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin-top: 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  display: none;
+}
+
+.recipient-dropdown.active {
+  display: block;
+}
+
+.recipient-dropdown-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recipient-dropdown-item:hover {
+  background-color: #f9fafb;
+}
+
+.recipient-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.recipient-info {
+  flex: 1;
+}
+
+.recipient-name {
+  font-weight: 500;
+}
+
+.recipient-email {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Recipients Modal */
+.recipient-search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.recipient-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+
+.recipient-search-results.active {
+  display: block;
+}
+
+.recipient-search-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.recipient-search-item:last-child {
+  border-bottom: none;
+}
+
+.recipient-search-item:hover {
+  background-color: #f9fafb;
+}
+
+.selected-recipients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
   /* Loading Spinner */
   .loading-spinner {
     display: inline-block;
