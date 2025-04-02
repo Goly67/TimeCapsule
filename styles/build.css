@@ -1,0 +1,246 @@
+:root {
+    --forest-green-50: #f2f7f4;
+    --forest-green-100: #e6f0e8;
+    --forest-green-200: #cde0d2;
+    --forest-green-300: #b3d0bc;
+    --forest-green-400: #9ac0a5;
+    --forest-green-500: #80b08f;
+    --forest-green-600: #67a079;
+    --forest-green-700: #4d9063;
+    --forest-green-800: #34804d;
+    --forest-green-900: #1a7037;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f9fafb;
+    color: #333;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .beta-banner {
+    background: linear-gradient(to right, #f59e0b, #d97706);
+    color: white;
+    text-align: center;
+    padding: 8px 16px;
+    position: relative;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .beta-tag {
+    font-weight: bold;
+    margin-right: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .construction-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+  }
+  
+  .logo {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--forest-green-800);
+    margin-bottom: 1rem;
+    text-decoration: none;
+  }
+  
+  h1 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.5rem;
+    color: var(--forest-green-800);
+    margin-bottom: 1.5rem;
+  }
+  
+  p {
+    font-size: 1.1rem;
+    color: #4b5563;
+    margin-bottom: 2rem;
+    max-width: 600px;
+  }
+  
+  .countdown {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  
+  .countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .countdown-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--forest-green-700);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .countdown-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .progress-container {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 3rem;
+  }
+  
+  .progress-bar {
+    height: 10px;
+    background-color: #e5e7eb;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--forest-green-500), var(--forest-green-700));
+    border-radius: 5px;
+    width: 25%;
+    transition: width 1s ease;
+  }
+  
+  .progress-text {
+    text-align: right;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .contact-info {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  
+  .contact-info a {
+    color: var(--forest-green-700);
+    text-decoration: none;
+  }
+  
+  .contact-info a:hover {
+    text-decoration: underline;
+  }
+  
+  .footer {
+    background-color: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: auto;
+  }
+  
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .footer-link {
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  
+  .footer-link:hover {
+    color: var(--forest-green-700);
+  }
+  
+  .footer-copyright {
+    font-size: 0.875rem;
+    color: #9ca3af;
+  }
+  
+  /* Blob canvas */
+  #blob-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .countdown {
+      gap: 1rem;
+    }
+    
+    .countdown-value {
+      font-size: 1.8rem;
+      width: 60px;
+      height: 60px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .construction-container {
+      padding: 1.5rem;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+    }
+    
+    p {
+      font-size: 1rem;
+    }
+    
+    .countdown {
+      gap: 0.8rem;
+    }
+    
+    .countdown-value {
+      font-size: 1.5rem;
+      width: 50px;
+      height: 50px;
+    }
+    
+    .countdown-label {
+      font-size: 0.75rem;
+    }
+  }
