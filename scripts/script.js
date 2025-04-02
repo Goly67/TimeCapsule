@@ -567,150 +567,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load user's capsules
   async function loadCapsules() {
-    const capsulesContainer = document.getElementById("capsules-container")
-    const noCapsules = document.getElementById("no-capsules")
+  const capsulesContainer = document.getElementById("capsules-container")
+  const noCapsules = document.getElementById("no-capsules")
 
-    try {
-      // Try to fetch capsules from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
-
-      let userCapsules = []
-
-      if (response.ok) {
-        userCapsules = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
-      }
-
-      if (userCapsules.length === 0) {
-        noCapsules.style.display = "block"
-        return
-      }
-
-      noCapsules.style.display = "none"
-
-      // Clear previous capsules
-      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
-      existingCapsules.forEach((capsule) => capsule.remove())
-
-      // Sort capsules by creation date (newest first)
-      userCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-      // Create capsule cards
-      userCapsules.forEach((capsule) => {
-        const isDelivered = new Date(capsule.deliveryDate) <= new Date()
-
-        const capsuleCard = document.createElement("div")
-        capsuleCard.className = "capsule-card"
-
-        let contentTypes = ""
-        if (capsule.message) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Letter
-              </div>
-            `
-        }
-
-        if (capsule.hasImages) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Photos
-              </div>
-            `
-        }
-
-        if (capsule.hasVideo) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Video
-              </div>
-            `
-        }
-
-        // Show recipients count if any
-        let recipientsInfo = ""
-        if (capsule.recipients && capsule.recipients.length > 0) {
-          recipientsInfo = `
-            <div class="capsule-recipients">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
-            </div>
-          `
-        }
-
-        capsuleCard.innerHTML = `
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
-                  <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                    ${isDelivered ? "Delivered" : "Sealed"}
-                  </div>
-                </div>
-                
-                <div class="flex items-center text-sm text-gray-500 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>
-                    Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                <div class="flex flex-wrap gap-2 mb-2">
-                  ${contentTypes}
-                </div>
-                
-                ${recipientsInfo}
-              </div>
-              
-              <div class="flex gap-3" style="gap: 0.8rem;">
-                <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
-                  ${isDelivered ? "View" : "Sealed"}
-                </button>
-                <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
-                  Delete
-                </button>
-              </div>
-            </div>
-          `
-
-        capsulesContainer.appendChild(capsuleCard)
-      })
-
-      // Add event listeners to view and delete buttons
-      document.querySelectorAll(".view-capsule-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const capsuleId = this.getAttribute("data-id")
-          viewCapsule(capsuleId)
-        })
-      })
-
-      document.querySelectorAll(".delete-capsule-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const capsuleId = this.getAttribute("data-id")
-          openDeleteModal(capsuleId)
-        })
-      })
-    } catch (error) {
-      console.error("Error loading capsules:", error)
-      alert("Failed to load your time capsules. Please try again later.")
-    }
-  }
+  try {
+    // Try to fetch user's own capsules from server
+    const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+    
+…  }
+}
 
   // View capsule
   async function viewCapsule(capsuleId) {
