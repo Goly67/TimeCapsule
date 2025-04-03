@@ -637,8 +637,8 @@
     display: block;
   }
 
-  /* File Upload */
-  .file-upload {
+  /* File Uploads */
+  .file-video-upload {
     border: 2px dashed #c1dccf;
     border-radius: 0.5rem;
     padding: 2rem;
@@ -646,7 +646,20 @@
     cursor: pointer;
   }
 
-  .file-upload:hover {
+  .file-video-upload:hover {
+    
+  }
+
+  /* File Upload */
+  .file-photo-upload {
+    border: 2px dashed #c1dccf;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .file-photo-upload:hover {
     background-color: #f2f7f4;
   }
 
@@ -769,6 +782,49 @@
     height: 0.875rem;
     margin-right: 0.25rem;
   }
+
+  /* Archive button styling - fixed to match other buttons */
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+  color: white;
+}
+
+/* Archived badge styling */
+.capsule-archived-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  background-color: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  width: fit-content;
+}
+
+.capsule-archived-badge svg {
+  color: #6b7280;
+}
+
+/* Shared badge styling */
+.capsule-shared-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+
 
   /* Toast Notifications */
   .toast-container {

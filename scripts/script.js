@@ -73,6 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
     loadCapsules()
   })
 
+  // Add event listener for the view archived capsules button
+  document.getElementById("view-archived-button").addEventListener("click", () => {
+    navigateTo("view-page")
+    loadArchivedCapsules()
+  })
+
   document.getElementById("create-back-button").addEventListener("click", (e) => {
     e.preventDefault()
     navigateTo("home-page")
@@ -175,7 +181,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   photoInput.addEventListener("change", (e) => {
     if (e.target.files.length > 0) {
-      photoPreview.innerHTML = ""
+      // Check if adding these files would exceed the 6 photo limit
+      if (uploadedPhotos.length + e.target.files.length > 6) {
+        alert("You can only upload a maximum of 6 photos. Please remove some photos first or select fewer photos.")
+        return
+      }
+
       photoPreview.style.display = "grid"
 
       // Process each file
@@ -188,11 +199,44 @@ document.addEventListener("DOMContentLoaded", () => {
           // Add to preview
           const previewItem = document.createElement("div")
           previewItem.className = "file-preview-item"
-          previewItem.innerHTML = `<img src="${imageData}" alt="Preview">`
+
+          // Create a unique ID for this photo
+          const photoId = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+          previewItem.innerHTML = `
+            <img src="${imageData}" alt="Preview">
+            <button class="remove-photo-btn" data-id="${photoId}">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          `
+
           photoPreview.appendChild(previewItem)
 
-          // Store the image data
-          uploadedPhotos.push(imageData)
+          // Add event listener to remove button
+          previewItem.querySelector(".remove-photo-btn").addEventListener("click", (e) => {
+            e.preventDefault()
+            const id = e.currentTarget.getAttribute("data-id")
+            // Remove from uploadedPhotos array
+            const index = uploadedPhotos.findIndex((photo) => photo.id === id)
+            if (index !== -1) {
+              uploadedPhotos.splice(index, 1)
+            }
+            // Remove from UI
+            previewItem.remove()
+
+            // Hide preview container if no photos left
+            if (uploadedPhotos.length === 0) {
+              photoPreview.style.display = "none"
+            }
+          })
+
+          // Store the image data with its ID
+          uploadedPhotos.push({
+            id: photoId,
+            data: imageData,
+          })
         }
 
         reader.readAsDataURL(file)
@@ -200,64 +244,149 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })
 
-  // Video recording
-  const startRecordingBtn = document.getElementById("start-recording")
-  const stopRecordingBtn = document.getElementById("stop-recording")
-  const recordAgainBtn = document.getElementById("record-again")
-  const videoPlaceholder = document.getElementById("video-placeholder")
-  const videoRecording = document.getElementById("video-recording")
-  const videoPreviewContainer = document.getElementById("video-preview-container")
-  const recordingPreview = document.getElementById("recording-preview")
-  const videoPreview = document.getElementById("video-preview")
+  // Add CSS for the remove photo button
+  const style = document.createElement("style")
+  style.textContent = `
+    .file-preview-item {
+      position: relative;
+    }
+    
+    .remove-photo-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      color: #ef4444;
+    }
+    
+    .remove-photo-btn:hover {
+      background-color: rgba(255, 255, 255, 1);
+    }
+  `
+  document.head.appendChild(style)
 
-  let mediaRecorder
-  let recordedChunks = []
+  // Video upload functionality
+  const videoInput = document.getElementById("video-input")
+  const videoUploadArea = document.getElementById("video-upload-area")
+  const selectVideoBtn = document.getElementById("select-video-btn")
+  const videoPlaceholder = document.getElementById("video-upload-area")
+  const videoPreviewContainer = document.getElementById("video-preview-container")
+  const videoPreview = document.getElementById("video-preview")
+  const changeVideoBtn = document.getElementById("change-video")
+  const removeVideoBtn = document.getElementById("remove-video")
+  const removeVideoBtnX = document.querySelector(".remove-video-btn")
+
+  // Store the video data URL
   let videoDataUrl = null
 
-  startRecordingBtn.addEventListener("click", async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      recordingPreview.srcObject = stream
-
-      mediaRecorder = new MediaRecorder(stream)
-      recordedChunks = []
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          recordedChunks.push(e.data)
-        }
-      }
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" })
-        videoDataUrl = URL.createObjectURL(blob)
-        videoPreview.src = videoDataUrl
-
-        videoRecording.style.display = "none"
-        videoPreviewContainer.style.display = "block"
-      }
-
-      mediaRecorder.start()
-      videoPlaceholder.style.display = "none"
-      videoRecording.style.display = "block"
-    } catch (err) {
-      console.error("Error accessing camera:", err)
-      alert("Unable to access your camera. Please check permissions.")
-    }
+  // Click handler for the select video button
+  selectVideoBtn.addEventListener("click", () => {
+    videoInput.click()
   })
 
-  stopRecordingBtn.addEventListener("click", () => {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop()
-      recordingPreview.srcObject.getTracks().forEach((track) => track.stop())
-    }
+  // Change handler for the video input
+  videoInput.addEventListener("change", (e) => {
+    handleVideoFile(e.target.files[0])
   })
 
-  recordAgainBtn.addEventListener("click", () => {
-    videoPreviewContainer.style.display = "none"
-    videoPlaceholder.style.display = "block"
+  // Function to handle the video file
+  function handleVideoFile(file) {
+    if (!file) return
+
+    // Check file size (limit to 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      alert("Video file is too large. Please select a file smaller than 100MB.")
+      return
+    }
+
+    // Create a URL for the video file
+    videoDataUrl = URL.createObjectURL(file)
+
+    // Set the video source and show the preview
+    videoPreview.src = videoDataUrl
+    videoUploadArea.style.display = "none" // Fixed reference
+    videoPreviewContainer.style.display = "block"
+  }
+
+  // Change video button handler
+  changeVideoBtn.addEventListener("click", () => {
+    videoInput.click()
+  })
+
+  // Remove video button handlers (both the X icon and the button)
+  function removeVideo() {
     videoDataUrl = null
+    videoPreview.src = ""
+    videoPreviewContainer.style.display = "none"
+    videoUploadArea.style.display = "block" // Fixed reference
+  }
+
+  removeVideoBtn.addEventListener("click", removeVideo)
+  removeVideoBtnX.addEventListener("click", removeVideo)
+
+  // Add drag and drop functionality for videos
+  videoUploadArea.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    videoUploadArea.classList.add("drag-over")
   })
+
+  videoUploadArea.addEventListener("dragleave", () => {
+    videoUploadArea.classList.remove("drag-over")
+  })
+
+  videoUploadArea.addEventListener("drop", (e) => {
+    e.preventDefault()
+    videoUploadArea.classList.remove("drag-over")
+
+    if (e.dataTransfer.files.length > 0) {
+      handleVideoFile(e.dataTransfer.files[0])
+    }
+  })
+
+  // Add CSS for the video removal button and drag-over effect
+  const videoStyleCSS = document.createElement("style")
+  videoStyleCSS.textContent = `
+  .video-container {
+    position: relative;
+  }
+  
+  .remove-video-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    color: #ef4444;
+    z-index: 10;
+  }
+  
+  .remove-video-btn:hover {
+    background-color: rgba(255, 255, 255, 1);
+  }
+  
+  .drag-over {
+    border-color: #3d7059;
+    background-color: rgba(61, 112, 89, 0.05);
+  }
+`
+  document.head.appendChild(videoStyleCSS)
 
   // Recipients functionality
   const recipientInput = document.getElementById("recipient")
@@ -405,6 +534,475 @@ document.addEventListener("DOMContentLoaded", () => {
   // Create capsule form submission
   const createCapsuleForm = document.getElementById("create-capsule-form")
 
+  // Load user's capsules
+  async function loadCapsules() {
+    const capsulesContainer = document.getElementById("capsules-container")
+    const noCapsules = document.getElementById("no-capsules")
+
+    try {
+      // Try to fetch capsules from server
+      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+
+      let userCapsules = []
+
+      if (response.ok) {
+        userCapsules = await response.json()
+      } else {
+        // Fallback to localStorage if server request fails
+        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
+      }
+
+      if (userCapsules.length === 0) {
+        noCapsules.style.display = "block"
+        return
+      }
+
+      noCapsules.style.display = "none"
+
+      // Clear previous capsules
+      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
+      existingCapsules.forEach((capsule) => capsule.remove())
+
+      // Sort capsules by creation date (newest first)
+      userCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+      // Create capsule cards
+      userCapsules.forEach((capsule) => {
+        const isDelivered = new Date(capsule.deliveryDate) <= new Date()
+        const isSharedWithMe = capsule.isSharedWithMe === true
+        const isArchived = capsule.isArchived === true
+
+        // Skip archived capsules
+        if (isArchived) return
+
+        const capsuleCard = document.createElement("div")
+        capsuleCard.className = "capsule-card"
+
+        let contentTypes = ""
+        if (capsule.message) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Letter
+            </div>
+          `
+        }
+
+        if (capsule.hasImages) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Photos
+            </div>
+          `
+        }
+
+        if (capsule.hasVideo) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Video
+            </div>
+          `
+        }
+
+        // Show recipients count if any
+        let recipientsInfo = ""
+        if (capsule.recipients && capsule.recipients.length > 0) {
+          recipientsInfo = `
+          <div class="capsule-recipients">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
+          </div>
+        `
+        }
+
+        // Add shared badge if this capsule was shared with the current user
+        let sharedBadge = ""
+        if (isSharedWithMe) {
+          sharedBadge = `
+          <div class="capsule-shared-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            <span>Shared with you by ${capsule.userName}</span>
+          </div>
+        `
+        }
+
+        capsuleCard.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
+                <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
+                  ${isDelivered ? "Delivered" : "Sealed"}
+                </div>
+              </div>
+              
+              ${sharedBadge}
+              
+              <div class="flex items-center text-sm text-gray-500 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>
+                  Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+                </span>
+              </div>
+              
+              <div class="flex flex-wrap gap-2 mb-2">
+                ${contentTypes}
+              </div>
+              
+              ${recipientsInfo}
+            </div>
+            
+            <div class="flex gap-3" style="gap: 0.8rem;">
+              <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
+                ${isDelivered ? "View" : "Sealed"}
+              </button>
+              ${
+                !isSharedWithMe
+                  ? `
+                <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
+                  Delete
+                </button>
+              `
+                  : `
+                <button class="btn btn-secondary btn-sm archive-capsule-btn" data-id="${capsule.id}">
+                  Archive
+                </button>
+              `
+              }
+            </div>
+          </div>
+        `
+
+        capsulesContainer.appendChild(capsuleCard)
+      })
+
+      // Add event listeners to view, delete, and archive buttons
+      document.querySelectorAll(".view-capsule-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const capsuleId = this.getAttribute("data-id")
+          viewCapsule(capsuleId)
+        })
+      })
+
+      document.querySelectorAll(".delete-capsule-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const capsuleId = this.getAttribute("data-id")
+          openDeleteModal(capsuleId)
+        })
+      })
+
+      document.querySelectorAll(".archive-capsule-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const capsuleId = this.getAttribute("data-id")
+          archiveCapsule(capsuleId)
+        })
+      })
+    } catch (error) {
+      console.error("Error loading capsules:", error)
+      alert("Failed to load your time capsules. Please try again later.")
+    }
+  }
+
+  // Add the function to load archived capsules
+  async function loadArchivedCapsules() {
+    const capsulesContainer = document.getElementById("capsules-container")
+    const noCapsules = document.getElementById("no-capsules")
+
+    try {
+      // Try to fetch capsules from server
+      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+
+      let userCapsules = []
+
+      if (response.ok) {
+        userCapsules = await response.json()
+      } else {
+        // Fallback to localStorage if server request fails
+        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
+      }
+
+      // Filter only archived capsules
+      const archivedCapsules = userCapsules.filter((capsule) => capsule.isArchived === true)
+
+      if (archivedCapsules.length === 0) {
+        noCapsules.style.display = "block"
+        noCapsules.innerHTML = `
+          <h2 class="mb-4">No Archived Capsules</h2>
+          <p style="color: #6b7280; margin-bottom: 1.5rem;">You don't have any archived capsules yet.</p>
+          <button class="btn btn-primary" id="view-active-capsules-btn">View Active Capsules</button>
+        `
+
+        // Add event listener for the view active capsules button
+        document.getElementById("view-active-capsules-btn").addEventListener("click", () => {
+          loadCapsules()
+        })
+
+        return
+      }
+
+      noCapsules.style.display = "none"
+
+      // Clear previous capsules
+      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
+      existingCapsules.forEach((capsule) => capsule.remove())
+
+      // Sort capsules by creation date (newest first)
+      archivedCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+      // Create capsule cards
+      archivedCapsules.forEach((capsule) => {
+        const isDelivered = new Date(capsule.deliveryDate) <= new Date()
+        const isSharedWithMe = capsule.isSharedWithMe === true
+
+        const capsuleCard = document.createElement("div")
+        capsuleCard.className = "capsule-card"
+
+        let contentTypes = ""
+        if (capsule.message) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Letter
+            </div>
+          `
+        }
+
+        if (capsule.hasImages) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Photos
+            </div>
+          `
+        }
+
+        if (capsule.hasVideo) {
+          contentTypes += `
+            <div class="capsule-content-type">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Video
+            </div>
+          `
+        }
+
+        // Show recipients count if any
+        let recipientsInfo = ""
+        if (capsule.recipients && capsule.recipients.length > 0) {
+          recipientsInfo = `
+          <div class="capsule-recipients">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
+          </div>
+        `
+        }
+
+        // Add shared badge if this capsule was shared with the current user
+        let sharedBadge = ""
+        if (isSharedWithMe) {
+          sharedBadge = `
+          <div class="capsule-shared-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            <span>Shared with you by ${capsule.userName}</span>
+          </div>
+        `
+        }
+
+        // Add archived badge
+        const archivedBadge = `
+          <div class="capsule-archived-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            <span>Archived</span>
+          </div>
+        `
+
+        capsuleCard.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
+                <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
+                  ${isDelivered ? "Delivered" : "Sealed"}
+                </div>
+              </div>
+              
+              ${sharedBadge}
+              ${archivedBadge}
+              
+              <div class="flex items-center text-sm text-gray-500 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>
+                  Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+                </span>
+              </div>
+              
+              <div class="flex flex-wrap gap-2 mb-2">
+                ${contentTypes}
+              </div>
+              
+              ${recipientsInfo}
+            </div>
+            
+            <div class="flex gap-3" style="gap: 0.8rem;">
+              <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
+                ${isDelivered ? "View" : "Sealed"}
+              </button>
+              <button class="btn btn-primary btn-sm unarchive-capsule-btn" data-id="${capsule.id}">
+                Unarchive
+              </button>
+            </div>
+          </div>
+        `
+
+        capsulesContainer.appendChild(capsuleCard)
+      })
+
+      // Add event listeners to view and unarchive buttons
+      document.querySelectorAll(".view-capsule-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const capsuleId = this.getAttribute("data-id")
+          viewCapsule(capsuleId)
+        })
+      })
+
+      document.querySelectorAll(".unarchive-capsule-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const capsuleId = this.getAttribute("data-id")
+          unarchiveCapsule(capsuleId)
+        })
+      })
+
+      // Add a button to switch back to active capsules
+      const switchButton = document.createElement("div")
+      switchButton.className = "text-center mt-4"
+      switchButton.innerHTML = `
+        <button class="btn btn-outline" id="view-active-capsules-btn">View Active Capsules</button>
+      `
+      capsulesContainer.appendChild(switchButton)
+
+      document.getElementById("view-active-capsules-btn").addEventListener("click", () => {
+        loadCapsules()
+      })
+    } catch (error) {
+      console.error("Error loading archived capsules:", error)
+      alert("Failed to load your archived capsules. Please try again later.")
+    }
+  }
+
+  // Add the archive capsule function
+  async function archiveCapsule(capsuleId) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/archive`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to archive capsule")
+      }
+
+      // Show success message
+      alert("Capsule archived successfully")
+
+      // Reload capsules
+      loadCapsules()
+    } catch (error) {
+      console.error("Error archiving capsule:", error)
+      alert("Failed to archive capsule. Please try again later.")
+
+      // Fallback to local storage if server fails
+      try {
+        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+        const capsuleIndex = allCapsules.findIndex((c) => c.id === capsuleId)
+
+        if (capsuleIndex !== -1) {
+          allCapsules[capsuleIndex].isArchived = true
+          localStorage.setItem("timeCapsules", JSON.stringify(allCapsules))
+          loadCapsules()
+        }
+      } catch (localError) {
+        console.error("Error with local archive fallback:", localError)
+      }
+    }
+  }
+
+  // Add the unarchive capsule function
+  async function unarchiveCapsule(capsuleId) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/unarchive`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to unarchive capsule")
+      }
+
+      // Show success message
+      alert("Capsule unarchived successfully")
+
+      // Reload archived capsules
+      loadArchivedCapsules()
+    } catch (error) {
+      console.error("Error unarchiving capsule:", error)
+      alert("Failed to unarchive capsule. Please try again later.")
+
+      // Fallback to local storage if server fails
+      try {
+        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+        const capsuleIndex = allCapsules.findIndex((c) => c.id === capsuleId)
+
+        if (capsuleIndex !== -1) {
+          allCapsules[capsuleIndex].isArchived = false
+          localStorage.setItem("timeCapsules", JSON.stringify(allCapsules))
+          loadArchivedCapsules()
+        }
+      } catch (localError) {
+        console.error("Error with local unarchive fallback:", localError)
+      }
+    }
+  }
+
+  // Fix the create capsule form submission to properly handle file uploads
   createCapsuleForm.addEventListener("submit", async (e) => {
     e.preventDefault()
 
@@ -417,55 +1015,77 @@ document.addEventListener("DOMContentLoaded", () => {
       return
     }
 
-    // Generate a unique ID for the capsule
-    const capsuleId = `capsule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-    // Create FormData for file uploads
-    const formData = new FormData()
-    formData.append("title", title)
-    formData.append("deliveryDate", new Date(deliveryDate).toISOString())
-    formData.append("message", message)
-    formData.append("userId", currentUser.id)
-    formData.append("userName", currentUser.name)
-
-    // Add recipients
-    if (selectedRecipients.length > 0) {
-      formData.append("recipients", JSON.stringify(selectedRecipients))
-    }
-
-    // Add photos if any
-    if (uploadedPhotos.length > 0) {
-      uploadedPhotos.forEach((photoData) => {
-        // Convert base64 to blob
-        const byteString = atob(photoData.split(",")[1])
-        const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0]
-        const ab = new ArrayBuffer(byteString.length)
-        const ia = new Uint8Array(ab)
-        for (let i = 0; i < byteString.length; i++) {
-          ia[i] = byteString.charCodeAt(i)
-        }
-        const blob = new Blob([ab], { type: mimeString })
-
-        // Use 'photo' as the field name for ALL photos
-        formData.append("photo", blob, `photo_${Date.now()}.jpg`)
-      })
-      formData.append("hasImages", "true")
-    } else {
-      formData.append("hasImages", "false")
-    }
-
-    // Add video if recorded
-    if (videoDataUrl) {
-      // Fetch the blob from the URL
-      const response = await fetch(videoDataUrl)
-      const videoBlob = await response.blob()
-      formData.append("video", videoBlob, "video.webm")
-      formData.append("hasVideo", "true")
-    } else {
-      formData.append("hasVideo", "false")
-    }
+    // Show loading indicator or disable submit button
+    const submitButton = e.target.querySelector('button[type="submit"]')
+    const originalButtonText = submitButton.textContent
+    submitButton.disabled = true
+    submitButton.textContent = "Creating..."
 
     try {
+      // Generate a unique ID for the capsule
+      const capsuleId = `capsule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // Create FormData for file uploads
+      const formData = new FormData()
+      formData.append("title", title)
+      formData.append("deliveryDate", new Date(deliveryDate).toISOString())
+      formData.append("message", message)
+      formData.append("userId", currentUser.id)
+      formData.append("userName", currentUser.name)
+
+      // Add recipients
+      if (selectedRecipients.length > 0) {
+        formData.append("recipients", JSON.stringify(selectedRecipients))
+      }
+
+      // Add photos if any
+      if (uploadedPhotos.length > 0) {
+        for (let i = 0; i < uploadedPhotos.length; i++) {
+          const photoData = uploadedPhotos[i].data // Access the data property
+          // Convert base64 to blob
+          const byteString = atob(photoData.split(",")[1])
+          const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0]
+          const ab = new ArrayBuffer(byteString.length)
+          const ia = new Uint8Array(ab)
+          for (let j = 0; j < byteString.length; j++) {
+            ia[j] = byteString.charCodeAt(j)
+          }
+          const blob = new Blob([ab], { type: mimeString })
+
+          // Use 'photo' as the field name for ALL photos
+          formData.append("photo", blob, `photo_${Date.now()}_${i}.jpg`)
+        }
+        formData.append("hasImages", "true")
+      } else {
+        formData.append("hasImages", "false")
+      }
+
+      // Add video if uploaded
+      if (videoDataUrl) {
+        try {
+          // Fetch the blob from the URL
+          const response = await fetch(videoDataUrl)
+          const videoBlob = await response.blob()
+          formData.append("video", videoBlob, `video_${Date.now()}.webm`)
+          formData.append("hasVideo", "true")
+        } catch (videoError) {
+          console.error("Error processing video:", videoError)
+          formData.append("hasVideo", "false")
+        }
+      } else {
+        formData.append("hasVideo", "false")
+      }
+
+      // Log the form data for debugging
+      console.log("Sending form data to server...")
+      for (const pair of formData.entries()) {
+        if (pair[0] !== "photo" && pair[0] !== "video") {
+          console.log(`${pair[0]}: ${pair[1]}`)
+        } else {
+          console.log(`${pair[0]}: [Binary data]`)
+        }
+      }
+
       // Send data to server
       const response = await fetch("https://timecap.glitch.me/api/capsules", {
         method: "POST",
@@ -486,6 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const result = await response.json()
+      console.log("Server response:", result)
 
       // For backward compatibility, also store in localStorage
       const capsule = {
@@ -525,7 +1146,7 @@ document.addEventListener("DOMContentLoaded", () => {
       uploadedPhotos = []
       videoDataUrl = null
       videoPreviewContainer.style.display = "none"
-      videoPlaceholder.style.display = "block"
+      videoUploadArea.style.display = "block"
 
       // Clear recipients
       selectedRecipients = []
@@ -537,313 +1158,14 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Error creating capsule:", error)
       alert(error.message || "Failed to create time capsule. Please try again.")
+    } finally {
+      // Re-enable submit button
+      submitButton.disabled = false
+      submitButton.textContent = originalButtonText
     }
   })
 
-  // Share capsule with recipients
-  async function shareCapsuleWithRecipients(capsuleId, recipients) {
-    try {
-      const response = await fetch("https://timecap.glitch.me/api/capsules/" + capsuleId + "/share", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipientIds: recipients.map((r) => r.id),
-          shareType: "direct",
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to share capsule with recipients")
-      }
-
-      return await response.json()
-    } catch (error) {
-      console.error("Error sharing capsule:", error)
-      throw error
-    }
-  }
-
-  // Load user's capsules
-  async function loadCapsules() {
-    const capsulesContainer = document.getElementById("capsules-container")
-    const noCapsules = document.getElementById("no-capsules")
-
-    try {
-      // Try to fetch capsules from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
-
-      let userCapsules = []
-
-      if (response.ok) {
-        userCapsules = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
-      }
-
-      if (userCapsules.length === 0) {
-        noCapsules.style.display = "block"
-        return
-      }
-
-      noCapsules.style.display = "none"
-
-      // Clear previous capsules
-      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
-      existingCapsules.forEach((capsule) => capsule.remove())
-
-      // Sort capsules by creation date (newest first)
-      userCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-      // Create capsule cards
-      userCapsules.forEach((capsule) => {
-        const isDelivered = new Date(capsule.deliveryDate) <= new Date()
-        const isSharedWithMe = capsule.isSharedWithMe === true
-
-        const capsuleCard = document.createElement("div")
-        capsuleCard.className = "capsule-card"
-
-        let contentTypes = ""
-        if (capsule.message) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Letter
-              </div>
-            `
-        }
-
-        if (capsule.hasImages) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Photos
-              </div>
-            `
-        }
-
-        if (capsule.hasVideo) {
-          contentTypes += `
-              <div class="capsule-content-type">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Video
-              </div>
-            `
-        }
-
-        // Show recipients count if any
-        let recipientsInfo = ""
-        if (capsule.recipients && capsule.recipients.length > 0) {
-          recipientsInfo = `
-            <div class="capsule-recipients">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
-            </div>
-          `
-        }
-
-        // Add shared badge if this capsule was shared with the current user
-        let sharedBadge = ""
-        if (isSharedWithMe) {
-          sharedBadge = `
-            <div class="capsule-shared-badge">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Shared with you by ${capsule.userName}</span>
-          </div>
-        `
-        }
-
-        capsuleCard.innerHTML = `
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
-                  <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                    ${isDelivered ? "Delivered" : "Sealed"}
-                  </div>
-                </div>
-                
-                ${sharedBadge}
-                
-                <div class="flex items-center text-sm text-gray-500 mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>
-                    Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                <div class="flex flex-wrap gap-2 mb-2">
-                  ${contentTypes}
-                </div>
-                
-                ${recipientsInfo}
-              </div>
-              
-              <div class="flex gap-3" style="gap: 0.8rem;">
-                <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
-                  ${isDelivered ? "View" : "Sealed"}
-                </button>
-                ${
-                  !isSharedWithMe
-                    ? `
-                  <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
-                    Delete
-                  </button>
-                `
-                    : ""
-                }
-              </div>
-            </div>
-          `
-
-        capsulesContainer.appendChild(capsuleCard)
-      })
-
-      // Add event listeners to view and delete buttons
-      document.querySelectorAll(".view-capsule-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const capsuleId = this.getAttribute("data-id")
-          viewCapsule(capsuleId)
-        })
-      })
-
-      document.querySelectorAll(".delete-capsule-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-          const capsuleId = this.getAttribute("data-id")
-          openDeleteModal(capsuleId)
-        })
-      })
-    } catch (error) {
-      console.error("Error loading capsules:", error)
-      alert("Failed to load your time capsules. Please try again later.")
-    }
-  }
-
-  // View capsule
-  async function viewCapsule(capsuleId) {
-    try {
-      // Try to fetch capsule from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/shared`)
-
-      let capsule
-
-      if (response.ok) {
-        capsule = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        capsule = allCapsules.find((c) => c.id === capsuleId)
-      }
-
-      if (!capsule) {
-        alert("Capsule not found or has been deleted.")
-        return
-      }
-
-      // Send notification that capsule was opened
-      try {
-        await sendOpenNotification(capsule)
-      } catch (notifyError) {
-        console.error("Error sending notification:", notifyError)
-        // Continue even if notification fails
-      }
-
-      // Load shared capsule view
-      loadSharedCapsuleView(capsule)
-    } catch (error) {
-      console.error("Error viewing capsule:", error)
-      alert("Failed to view time capsule. Please try again later.")
-    }
-  }
-
-  // Send notification when capsule is opened
-  async function sendOpenNotification(capsule) {
-    // This would connect to a push notification service in a real implementation
-    console.log(`Sending notification for opened capsule: ${capsule.id}`)
-
-    // If the capsule has recipients, notify them
-    if (capsule.recipients && capsule.recipients.length > 0) {
-      try {
-        const response = await fetch("https://timecap.glitch.me/api/notifications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            capsuleId: capsule.id,
-            title: capsule.title,
-            recipientIds: capsule.recipients.map((r) => r.id),
-            message: `${currentUser.name} opened the time capsule "${capsule.title}"`,
-          }),
-        })
-
-        if (!response.ok) {
-          throw new Error("Failed to send notifications")
-        }
-
-        return await response.json()
-      } catch (error) {
-        console.error("Error sending notifications:", error)
-        throw error
-      }
-    }
-  }
-
-  // Load shared capsule
-  async function loadSharedCapsule(capsuleId) {
-    try {
-      // Try to fetch capsule from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/shared`)
-
-      let capsule
-
-      if (response.ok) {
-        capsule = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        capsule = allCapsules.find((c) => c.id === capsuleId)
-      }
-
-      if (!capsule) {
-        alert("Capsule not found or has been deleted.")
-        window.location.href = "index.html"
-        return
-      }
-
-      // Check if capsule is delivered
-      const isDelivered = new Date(capsule.deliveryDate) <= new Date()
-      if (!isDelivered) {
-        alert("This time capsule has not been delivered yet. Please check back after the delivery date.")
-        window.location.href = "index.html"
-        return
-      }
-
-      // Load shared capsule view
-      loadSharedCapsuleView(capsule)
-    } catch (error) {
-      console.error("Error loading shared capsule:", error)
-      alert("Failed to load shared time capsule. Please try again later.")
-      window.location.href = "index.html"
-    }
-  }
-
-  // Load shared capsule view
+  // Fix the loadSharedCapsuleView function to properly display images and videos
   function loadSharedCapsuleView(capsule) {
     // Show shared capsule page
     document.querySelectorAll(".page").forEach((page) => {
@@ -870,65 +1192,197 @@ document.addEventListener("DOMContentLoaded", () => {
       const messageSection = document.createElement("div")
       messageSection.className = "mb-6"
       messageSection.innerHTML = `
-          <div class="content-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <h3>Message</h3>
-          </div>
-          <div class="bg-forest-green-50 p-4 rounded-lg">
-            <p style="white-space: pre-wrap;">${capsule.message}</p>
-          </div>
-        `
+      <div class="content-header">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <h3>Message</h3>
+      </div>
+      <div class="bg-forest-green-50 p-4 rounded-lg">
+        <p style="white-space: pre-wrap;">${capsule.message}</p>
+      </div>
+    `
       contentContainer.appendChild(messageSection)
     }
 
     // Add photos if exist
-    if (capsule.hasImages && Array.isArray(capsule.photos) && capsule.photos.length > 0) {
+    if (capsule.hasImages) {
       const photosSection = document.createElement("div")
       photosSection.className = "mb-6"
 
       let photosHTML = `
-          <div class="content-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <h3>Photos</h3>
-          </div>
-          <div class="image-gallery">
-        `
+      <div class="content-header">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <h3>Photos</h3>
+        <button class="btn btn-primary save-all-photos-btn ml-auto">Save All Photos</button>
+      </div>
+      <div class="image-gallery">
+    `
 
-      capsule.photos.forEach((photo) => {
-        photosHTML += `
+      // Store photo URLs for the "Save All" button
+      const photoUrls = []
+
+      // Handle different photo formats
+      if (Array.isArray(capsule.photos)) {
+        capsule.photos.forEach((photo, index) => {
+          let photoUrl = ""
+
+          // Check if it's a base64 string or a file path
+          if (typeof photo === "object" && photo.data) {
+            // It's an object with data property (from our updated structure)
+            photoUrl = photo.data
+          } else if (typeof photo === "string" && photo.startsWith("data:image")) {
+            // It's a base64 string
+            photoUrl = photo
+          } else if (typeof photo === "string") {
+            // It's a file path, make sure it's a full URL
+            photoUrl = photo.startsWith("http")
+              ? photo
+              : `https://timecap.glitch.me${photo.startsWith("/") ? "" : "/"}${photo}`
+          }
+
+          if (photoUrl) {
+            photoUrls.push({ url: photoUrl, filename: `time-capsule-photo-${index + 1}.jpg` })
+
+            photosHTML += `
             <div class="gallery-item">
-              <img src="${photo}" alt="Time Capsule Photo">
+              <img src="${photoUrl}" alt="Time Capsule Photo" 
+                   onerror="this.onerror=null; this.src='https://timecap.glitch.me/photo/${typeof photo === "string" ? photo.split("/").pop() : ""}';">
+              <a href="${photoUrl}" download="time-capsule-photo-${index + 1}.jpg" class="save-photo-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Save
+              </a>
             </div>
           `
-      })
+          }
+        })
+      }
 
       photosHTML += `</div>`
       photosSection.innerHTML = photosHTML
       contentContainer.appendChild(photosSection)
+
+      // Add event listener for "Save All Photos" button
+      const saveAllBtn = photosSection.querySelector(".save-all-photos-btn")
+      if (saveAllBtn && photoUrls.length > 0) {
+        saveAllBtn.addEventListener("click", () => {
+          photoUrls.forEach((photo) => {
+            const link = document.createElement("a")
+            link.href = photo.url
+            link.download = photo.filename
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            // Small delay between downloads to prevent browser issues
+            setTimeout(() => {}, 100)
+          })
+        })
+      }
     }
 
     // Add video if exists
-    if (capsule.hasVideo && capsule.videoData) {
+    if (capsule.hasVideo) {
       const videoSection = document.createElement("div")
       videoSection.className = "mb-6"
+
+      let videoSrc = ""
+
+      // Handle different video formats
+      if (capsule.videoData && typeof capsule.videoData === "string" && capsule.videoData.startsWith("blob:")) {
+        // It's a blob URL
+        videoSrc = capsule.videoData
+      } else if (capsule.videoPath && typeof capsule.videoPath === "string") {
+        // It's a file path
+        videoSrc = capsule.videoPath.startsWith("http")
+          ? capsule.videoPath
+          : `https://timecap.glitch.me${capsule.videoPath.startsWith("/") ? "" : "/"}${capsule.videoPath}`
+      }
+
       videoSection.innerHTML = `
-          <div class="content-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            <h3>Video Message</h3>
-          </div>
-          <div class="video-container">
-            <video controls src="${capsule.videoData}"></video>
-          </div>
-        `
+      <div class="content-header">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <h3>Video Message</h3>
+        <a href="${videoSrc}" download="time-capsule-video.mp4" class="btn btn-primary ml-auto save-video-btn">Save Video</a>
+      </div>
+      <div class="video-container">
+        <video controls src="${videoSrc}" 
+               onerror="this.onerror=null; this.src='https://timecap.glitch.me/video/${capsule.videoPath ? capsule.videoPath.split("/").pop() : ""}';">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    `
       contentContainer.appendChild(videoSection)
     }
+
+    // Add archive button for shared capsules
+    if (capsule.isSharedWithMe && !capsule.isArchived) {
+      const archiveButtonSection = document.createElement("div")
+      archiveButtonSection.className = "text-center mt-4"
+      archiveButtonSection.innerHTML = `
+      <button class="btn btn-secondary archive-shared-capsule-btn" data-id="${capsule.id}">
+        Archive This Capsule
+      </button>
+    `
+      contentContainer.appendChild(archiveButtonSection)
+
+      // Add event listener for the archive button
+      archiveButtonSection.querySelector(".archive-shared-capsule-btn").addEventListener("click", function () {
+        const capsuleId = this.getAttribute("data-id")
+        archiveCapsule(capsuleId)
+        // Navigate back to view page after archiving
+        navigateTo("view-page")
+        loadCapsules()
+      })
+    }
   }
+
+  // Add CSS for the save buttons
+  const saveButtonsStyle = document.createElement("style")
+  saveButtonsStyle.textContent = `
+  .save-photo-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(61, 112, 89, 0.9);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  
+  .save-photo-btn:hover {
+    background-color: rgba(61, 112, 89, 1);
+  }
+  
+  .gallery-item {
+    position: relative;
+  }
+  
+  .content-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .content-header h3 {
+    margin-left: 0.5rem;
+    margin-right: auto;
+  }
+`
+  document.head.appendChild(saveButtonsStyle)
 
   // Delete modal
   let capsuleToDelete = null
@@ -1300,6 +1754,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Scroll to top
     window.scrollTo(0, 0)
+  }
+
+  // Declare the functions
+  async function loadSharedCapsule(capsuleId) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to load shared capsule")
+      }
+
+      const capsule = await response.json()
+
+      loadSharedCapsuleView(capsule)
+    } catch (error) {
+      console.error("Error loading shared capsule:", error)
+      alert("Failed to load shared time capsule. Please try again later.")
+    }
+  }
+
+  async function viewCapsule(capsuleId) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to load capsule")
+      }
+
+      const capsule = await response.json()
+
+      loadSharedCapsuleView(capsule)
+    } catch (error) {
+      console.error("Error loading capsule:", error)
+      alert("Failed to load time capsule. Please try again later.")
+    }
+  }
+
+  async function shareCapsuleWithRecipients(capsuleId, recipients) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/share`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipients: recipients.map((r) => r.id),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to share capsule")
+      }
+
+      console.log("Capsule shared successfully with recipients")
+    } catch (error) {
+      console.error("Error sharing capsule:", error)
+      throw error // Re-throw the error so the calling function knows it failed
+    }
   }
 })
 
