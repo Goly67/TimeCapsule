@@ -50,6 +50,371 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Add notification button to the header
+  const userProfileElement = document.getElementById("user-profile")
+  if (userProfileElement) {
+    // Get the header element
+    const headerElement =
+      document.querySelector("header") || userProfileElement.closest("header") || userProfileElement.parentNode
+
+    // Create a container for the profile section (notification + user profile)
+    const profileSection = document.createElement("div")
+    profileSection.className = "profile-section"
+    profileSection.style.display = "flex"
+    profileSection.style.alignItems = "center"
+
+    // Create notification button
+    const notificationButton = document.createElement("div")
+    notificationButton.className = "notification-button"
+    notificationButton.id = "notification-button"
+    notificationButton.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+    <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
+  `
+
+    // Create notification dropdown
+    const notificationDropdown = document.createElement("div")
+    notificationDropdown.className = "notification-dropdown"
+    notificationDropdown.id = "notification-dropdown"
+
+    // Remove user profile from its current position
+    const userProfileParent = userProfileElement.parentNode
+    userProfileParent.removeChild(userProfileElement)
+
+    // Add both elements to the profile section
+    profileSection.appendChild(notificationButton)
+    profileSection.appendChild(userProfileElement)
+
+    // Add the profile section to the header (or parent element)
+    headerElement.appendChild(profileSection)
+    document.body.appendChild(notificationDropdown)
+
+    // Add event listener to toggle notification dropdown
+    notificationButton.addEventListener("click", (e) => {
+      e.stopPropagation()
+      notificationDropdown.classList.toggle("active")
+
+      // If opening the dropdown, mark notifications as read
+      if (notificationDropdown.classList.contains("active")) {
+        markNotificationsAsRead()
+
+        // Position the dropdown relative to the notification button
+        const buttonRect = notificationButton.getBoundingClientRect()
+
+        // For desktop (larger screens), position it relative to the button
+        if (window.innerWidth >= 768) {
+          notificationDropdown.style.right = window.innerWidth - buttonRect.right + 10 + "px"
+          notificationDropdown.style.left = "auto"
+          notificationDropdown.style.top = buttonRect.bottom + 10 + "px"
+        } else {
+          // For mobile, center it
+          notificationDropdown.style.top = buttonRect.bottom + 10 + "px"
+          notificationDropdown.style.right = "5%"
+          notificationDropdown.style.left = "5%"
+        }
+
+        // Ensure the dropdown is visible within the viewport
+        const dropdownRect = notificationDropdown.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+
+        if (dropdownRect.bottom > viewportHeight) {
+          // If dropdown would go off the bottom of the screen, position it above the button
+          notificationDropdown.style.top = buttonRect.top - dropdownRect.height - 10 + "px"
+        }
+      }
+    })
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", () => {
+      notificationDropdown.classList.remove("active")
+    })
+
+    // Add CSS for notification button and dropdown
+    const notificationStyles = document.createElement("style")
+    notificationStyles.textContent = `
+  .profile-section {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+  
+  .notification-button {
+    position: relative;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    color: #3d7059;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  
+  .notification-dropdown {
+    position: fixed;
+    width: 300px;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+    padding: 1rem;
+  }
+
+@media (max-width: 768px) {
+  .notification-dropdown {
+    width: 90%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+  
+  .notification-dropdown.active {
+    display: block;
+  }
+  
+  .notification-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+  }
+  
+  .notification-item:last-child {
+    border-bottom: none;
+  }
+  
+  .notification-item:hover {
+    background-color: #f9fafb;
+  }
+  
+  .notification-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #1f2937;
+  }
+  
+  .notification-message {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .notification-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+  }
+  
+  .notification-item.unread {
+    background-color: #f2f7f4;
+  }
+  
+  .notification-item.unread .notification-title {
+    color: #3d7059;
+  }
+  
+  .no-notifications {
+    text-align: center;
+    padding: 1rem;
+    color: #6b7280;
+  }
+`
+    document.head.appendChild(notificationStyles)
+  }
+
+  // Function to check for new notifications
+  async function checkForNewNotifications() {
+    try {
+      // Try to fetch capsules from server
+      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+
+      let userCapsules = []
+
+      if (response.ok) {
+        userCapsules = await response.json()
+      } else {
+        // Fallback to localStorage if server request fails
+        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+        userCapsules = allCapsules.filter(
+          (capsule) => capsule.recipients && capsule.recipients.some((recipient) => recipient.id === currentUser.id),
+        )
+      }
+
+      // Filter only capsules shared with the user
+      const sharedCapsules = userCapsules.filter(
+        (capsule) =>
+          capsule.recipients &&
+          capsule.recipients.some((recipient) => recipient.id === currentUser.id) &&
+          capsule.isSharedWithMe === true,
+      )
+
+      // Get read notifications from localStorage
+      const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
+
+      // Filter unread notifications
+      const unreadNotifications = sharedCapsules.filter((capsule) => !readNotifications.includes(capsule.id))
+
+      // Update notification badge
+      updateNotificationBadge(unreadNotifications.length)
+
+      // Update notification dropdown content
+      updateNotificationDropdown(sharedCapsules, readNotifications)
+
+      return unreadNotifications.length
+    } catch (error) {
+      console.error("Error checking for notifications:", error)
+      return 0
+    }
+  }
+
+  // Function to update notification badge
+  function updateNotificationBadge(count) {
+    const badge = document.getElementById("notification-badge")
+    if (!badge) return
+
+    if (count > 0) {
+      badge.textContent = count > 9 ? "9+" : count
+      badge.style.display = "flex"
+    } else {
+      badge.style.display = "none"
+    }
+  }
+
+  // Function to update notification dropdown content
+  function updateNotificationDropdown(notifications, readNotifications) {
+    const dropdown = document.getElementById("notification-dropdown")
+    if (!dropdown) return
+
+    if (notifications.length === 0) {
+      dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+      return
+    }
+
+    // Sort notifications by creation date (newest first)
+    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    let notificationsHTML = `<div class="notification-header">
+      <h3>Notifications</h3>
+    </div>`
+
+    notifications.forEach((notification) => {
+      const isRead = readNotifications.includes(notification.id)
+      const timeAgo = getTimeAgo(new Date(notification.createdAt))
+
+      notificationsHTML += `
+        <div class="notification-item ${isRead ? "" : "unread"}" data-id="${notification.id}">
+          <div class="notification-title">New Time Capsule Shared</div>
+          <div class="notification-message">${notification.userName} shared "${notification.title}" with you</div>
+          <div class="notification-time">${timeAgo}</div>
+        </div>
+      `
+    })
+
+    dropdown.innerHTML = notificationsHTML
+
+    // Add event listeners to notification items
+    dropdown.querySelectorAll(".notification-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const capsuleId = item.getAttribute("data-id")
+        viewCapsule(capsuleId)
+        markNotificationAsRead(capsuleId)
+      })
+    })
+  }
+
+  // Function to mark all notifications as read
+  function markNotificationsAsRead() {
+    const notificationItems = document.querySelectorAll(".notification-item.unread")
+    const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
+
+    notificationItems.forEach((item) => {
+      const capsuleId = item.getAttribute("data-id")
+      if (!readNotifications.includes(capsuleId)) {
+        readNotifications.push(capsuleId)
+      }
+      item.classList.remove("unread")
+    })
+
+    localStorage.setItem(`readNotifications_${currentUser.id}`, JSON.stringify(readNotifications))
+    updateNotificationBadge(0)
+  }
+
+  // Function to mark a specific notification as read
+  function markNotificationAsRead(capsuleId) {
+    const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
+
+    if (!readNotifications.includes(capsuleId)) {
+      readNotifications.push(capsuleId)
+      localStorage.setItem(`readNotifications_${currentUser.id}`, JSON.stringify(readNotifications))
+    }
+
+    // Update UI
+    const notificationItem = document.querySelector(`.notification-item[data-id="${capsuleId}"]`)
+    if (notificationItem) {
+      notificationItem.classList.remove("unread")
+    }
+
+    // Recount unread notifications
+    const unreadCount = document.querySelectorAll(".notification-item.unread").length
+    updateNotificationBadge(unreadCount)
+  }
+
+  // Helper function to format time ago
+  function getTimeAgo(date) {
+    const now = new Date()
+    const diffInSeconds = Math.floor((now - date) / 1000)
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} seconds ago`
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) {
+      return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    if (diffInDays < 30) {
+      return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30)
+    if (diffInMonths < 12) {
+      return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`
+    }
+
+    const diffInYears = Math.floor(diffInMonths / 12)
+    return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`
+  }
+
+  // Check for notifications when the page loads
+  checkForNewNotifications()
+
+  // Set up periodic notification check (every 60 seconds)
+  setInterval(checkForNewNotifications, 60000)
+
   // Toggle profile dropdown
   const userProfile = document.getElementById("user-profile")
   const profileDropdown = document.getElementById("profile-dropdown")
@@ -378,7 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Remove video button handlers (both the X icon and the button)
   function removeVideo() {
     if (!videoPreview || !videoPreviewContainer || !videoUploadArea) return
-    
+
     videoDataUrl = null
     videoPreview.src = ""
     videoPreviewContainer.style.display = "none"
@@ -388,7 +753,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (removeVideoBtn) {
     removeVideoBtn.addEventListener("click", removeVideo)
   }
-  
+
   if (removeVideoBtnX) {
     removeVideoBtnX.addEventListener("click", removeVideo)
   }
@@ -556,7 +921,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Close dropdown when clicking outside
     document.addEventListener("click", (e) => {
-      if (recipientInput && recipientDropdown && !recipientInput.contains(e.target) && !recipientDropdown.contains(e.target)) {
+      if (
+        recipientInput &&
+        recipientDropdown &&
+        !recipientInput.contains(e.target) &&
+        !recipientDropdown.contains(e.target)
+      ) {
         recipientDropdown.classList.remove("active")
       }
     })
@@ -565,7 +935,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add recipient
   function addRecipient(user) {
     if (!recipientTags) return
-    
+
     if (selectedRecipients.some((r) => r.id === user.id)) return
 
     selectedRecipients.push(user)
@@ -587,7 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Remove recipient
   function removeRecipient(userId) {
     if (!recipientTags) return
-    
+
     selectedRecipients = selectedRecipients.filter((r) => r.id !== userId)
 
     const tags = recipientTags.querySelectorAll(".recipient-tag")
@@ -606,7 +976,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadCapsules() {
     const capsulesContainer = document.getElementById("capsules-container")
     const noCapsules = document.getElementById("no-capsules")
-    
+
     if (!capsulesContainer || !noCapsules) return
 
     try {
@@ -792,7 +1162,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadArchivedCapsules() {
     const capsulesContainer = document.getElementById("capsules-container")
     const noCapsules = document.getElementById("no-capsules")
-    
+
     if (!capsulesContainer || !noCapsules) return
 
     try {
@@ -1016,8 +1386,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Show success message
       alert("Capsule archived successfully")
 
-      // Reload capsules
-      loadCapsules()
+      // Reload the entire page
+      window.location.reload()
     } catch (error) {
       console.error("Error archiving capsule:", error)
       alert("Failed to archive capsule. Please try again later.")
@@ -1058,8 +1428,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Show success message
       alert("Capsule unarchived successfully")
 
-      // Reload archived capsules
-      loadArchivedCapsules()
+      // Reload the entire page
+      window.location.reload()
     } catch (error) {
       console.error("Error unarchiving capsule:", error)
       alert("Failed to unarchive capsule. Please try again later.")
@@ -1259,7 +1629,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     const sharedCapsulePage = document.getElementById("shared-capsule-page")
     if (!sharedCapsulePage) return
-    
+
     sharedCapsulePage.classList.add("active")
 
     // Set capsule title
@@ -1275,7 +1645,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ownerInitial) {
       ownerInitial.textContent = capsule.userName.charAt(0).toUpperCase()
     }
-    
+
     if (ownerName) {
       ownerName.textContent = capsule.userName
     }
@@ -1283,7 +1653,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Load capsule content
     const contentContainer = document.getElementById("shared-capsule-content")
     if (!contentContainer) return
-    
+
     contentContainer.innerHTML = ""
 
     // Add message if exists
@@ -1493,14 +1863,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openDeleteModal(capsuleId) {
     if (!deleteModal) return
-    
+
     capsuleToDelete = capsuleId
     deleteModal.classList.add("active")
   }
 
   function closeDeleteModal() {
     if (!deleteModal) return
-    
+
     deleteModal.classList.remove("active")
     capsuleToDelete = null
   }
@@ -1544,7 +1914,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openRecipientsModal() {
     if (!recipientsModal) return
-    
+
     // Initialize with current recipients
     modalSelectedRecipients = [...selectedRecipients]
     updateSelectedRecipientsUI()
@@ -1553,7 +1923,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function closeRecipientsModal() {
     if (!recipientsModal || !recipientSearch || !recipientSearchResults) return
-    
+
     recipientsModal.classList.remove("active")
     recipientSearch.value = ""
     recipientSearchResults.innerHTML = ""
@@ -1562,7 +1932,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateSelectedRecipientsUI() {
     if (!selectedRecipientsContainer) return
-    
+
     selectedRecipientsContainer.innerHTML = ""
 
     modalSelectedRecipients.forEach((recipient) => {
@@ -1715,7 +2085,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add this function to your JavaScript code
   function closeProfileModal() {
     if (!profileEditModal || !profileErrorMessage) return
-    
+
     profileEditModal.classList.remove("active")
 
     // Clear any error messages
@@ -1731,8 +2101,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Profile Edit Modal
   function openProfileModal() {
-    if (!profileEditModal || !profileNameInput || !profileEmailInput || !profileModalInitial || !profileModalImage) return
-    
+    if (!profileEditModal || !profileNameInput || !profileEmailInput || !profileModalInitial || !profileModalImage)
+      return
+
     // Fill form with current user data
     const currentUser = JSON.parse(localStorage.getItem("currentUser"))
 
@@ -2011,3 +2382,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   animate()
 })()
+
