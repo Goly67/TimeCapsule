@@ -439,13 +439,15 @@ font-size: 1rem;
     limitedNotifications.forEach((notification) => {
       const isRead = readNotifications.includes(notification.id)
       const timeAgo = getTimeAgo(new Date(notification.createdAt))
+      const isDelivered = new Date(notification.deliveryDate) <= new Date()
 
       notificationsHTML += `
-        <div class="notification-item ${isRead ? "" : "unread"}" data-id="${notification.id}">
+        <div class="notification-item ${isRead ? "" : "unread"}" data-id="${notification.id}" data-delivered="${isDelivered}">
           <div class="notification-content">
             <div class="notification-title">New Time Capsule Shared</div>
             <div class="notification-message">${notification.userName} shared "${notification.title}" with you</div>
             <div class="notification-time">${timeAgo}</div>
+            ${!isDelivered ? `<div class="notification-sealed">Sealed until ${new Date(notification.deliveryDate).toLocaleDateString()}</div>` : ""}
           </div>
           <button class="delete-notification-btn" data-id="${notification.id}">×</button>
         </div>
@@ -460,8 +462,24 @@ font-size: 1rem;
         // Only proceed if the click wasn't on the delete button
         if (!e.target.classList.contains("delete-notification-btn")) {
           const capsuleId = item.getAttribute("data-id")
-          viewCapsule(capsuleId)
-          markNotificationAsRead(capsuleId)
+          const isDelivered = item.getAttribute("data-delivered") === "true"
+
+          // Check if the capsule is delivered before viewing
+          if (isDelivered) {
+            viewCapsule(capsuleId)
+            markNotificationAsRead(capsuleId)
+          } else {
+            // Show message that capsule is still sealed
+            const capsule = limitedNotifications.find((n) => n.id === capsuleId)
+            if (capsule) {
+              const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
+              alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+            } else {
+              alert("This time capsule is not yet available to view.")
+            }
+            // Still mark as read even if they can't view it
+            markNotificationAsRead(capsuleId)
+          }
         }
       })
     })
@@ -484,6 +502,18 @@ font-size: 1rem;
       })
     }
   }
+
+  // Add CSS for sealed notification indicator
+  const sealedNotificationStyle = document.createElement("style")
+  sealedNotificationStyle.textContent = `
+    .notification-sealed {
+      font-size: 0.75rem;
+      color: #ef4444;
+      margin-top: 0.25rem;
+      font-weight: 500;
+    }
+  `
+  document.head.appendChild(sealedNotificationStyle)
 
   // Function to delete a specific notification
   function deleteNotification(notificationId) {
