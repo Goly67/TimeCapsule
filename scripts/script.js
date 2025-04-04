@@ -68,36 +68,56 @@ document.addEventListener("DOMContentLoaded", () => {
     notificationButton.className = "notification-button"
     notificationButton.id = "notification-button"
     notificationButton.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-    </svg>
-    <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
-  `
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+  </svg>
+  <span class="notification-badge" id="notification-badge" style="display: none;">0</span>
+`
 
     // Create notification dropdown
     const notificationDropdown = document.createElement("div")
-    notificationDropdown.className = "notification-dropdown"
+    notificationDropdown.className = "notification-dropdown dropdown-menu"
     notificationDropdown.id = "notification-dropdown"
+    notificationDropdown.style.display = "none"
+
+    // Create a container for the notification button and dropdown
+    const notificationContainer = document.createElement("div")
+    notificationContainer.className = "notification-container"
+    notificationContainer.style.position = "relative"
+    notificationContainer.appendChild(notificationButton)
+    notificationContainer.appendChild(notificationDropdown)
 
     // Remove user profile from its current position
     const userProfileParent = userProfileElement.parentNode
     userProfileParent.removeChild(userProfileElement)
 
     // Add both elements to the profile section
-    profileSection.appendChild(notificationButton)
+    profileSection.appendChild(notificationContainer)
     profileSection.appendChild(userProfileElement)
 
     // Add the profile section to the header (or parent element)
     headerElement.appendChild(profileSection)
-    document.body.appendChild(notificationDropdown)
 
-    // Add event listener to toggle notification dropdown
+    // Update the notification button click handler to manage z-index
     notificationButton.addEventListener("click", (e) => {
       e.stopPropagation()
+
+      // Close any other open dropdowns first
+      document.querySelectorAll(".dropdown-menu.active").forEach((dropdown) => {
+        if (dropdown.id !== "notification-dropdown") {
+          dropdown.classList.remove("active")
+          dropdown.style.display = "none" // Make sure to hide the dropdown
+          dropdown.style.zIndex = "1000" // Reset z-index
+        }
+      })
+
       notificationDropdown.classList.toggle("active")
 
-      // If opening the dropdown, mark notifications as read
+      // Make sure the dropdown is visible when active
       if (notificationDropdown.classList.contains("active")) {
+        notificationDropdown.style.display = "block"
+        notificationDropdown.style.zIndex = "1001" // Higher z-index when active
         markNotificationsAsRead()
 
         // Position the dropdown relative to the notification button
@@ -105,136 +125,229 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // For desktop (larger screens), position it relative to the button
         if (window.innerWidth >= 768) {
-          notificationDropdown.style.right = window.innerWidth - buttonRect.right + 10 + "px"
+          notificationDropdown.style.position = "absolute"
+          notificationDropdown.style.right = "0"
           notificationDropdown.style.left = "auto"
-          notificationDropdown.style.top = buttonRect.bottom + 10 + "px"
+          notificationDropdown.style.top = buttonRect.height + 5 + "px"
         } else {
           // For mobile, center it
+          notificationDropdown.style.position = "fixed"
           notificationDropdown.style.top = buttonRect.bottom + 10 + "px"
           notificationDropdown.style.right = "5%"
           notificationDropdown.style.left = "5%"
         }
-
-        // Ensure the dropdown is visible within the viewport
-        const dropdownRect = notificationDropdown.getBoundingClientRect()
-        const viewportHeight = window.innerHeight
-
-        if (dropdownRect.bottom > viewportHeight) {
-          // If dropdown would go off the bottom of the screen, position it above the button
-          notificationDropdown.style.top = buttonRect.top - dropdownRect.height - 10 + "px"
-        }
+      } else {
+        notificationDropdown.style.display = "none"
+        notificationDropdown.style.zIndex = "1000" // Reset z-index when inactive
       }
     })
 
-    // Close dropdown when clicking outside
+    // Update the document click handler to reset z-index
     document.addEventListener("click", () => {
-      notificationDropdown.classList.remove("active")
+      const notificationDropdown = document.getElementById("notification-dropdown")
+      if (notificationDropdown) {
+        notificationDropdown.classList.remove("active")
+        notificationDropdown.style.display = "none"
+        notificationDropdown.style.zIndex = "1000" // Reset z-index when closed
+      }
+
+      const profileDropdown = document.getElementById("profile-dropdown")
+      if (profileDropdown) {
+        profileDropdown.classList.remove("active")
+        profileDropdown.style.display = "none"
+        profileDropdown.style.zIndex = "1000" // Reset z-index when closed
+      }
+
+      document.querySelectorAll(".dropdown-menu").forEach((dropdown) => {
+        dropdown.classList.remove("active")
+        dropdown.style.zIndex = "1000" // Reset z-index for all dropdowns
+      })
     })
 
     // Add CSS for notification button and dropdown
     const notificationStyles = document.createElement("style")
     notificationStyles.textContent = `
-  .profile-section {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-  }
-  
-  .notification-button {
-    position: relative;
-    margin-right: 0.5rem;
-    cursor: pointer;
-    color: #3d7059;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .notification-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: #ef4444;
-    color: white;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-  }
-  
-  .notification-dropdown {
-    position: fixed;
-    width: 300px;
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 1000;
-    max-height: 80vh;
-    overflow-y: auto;
-    display: none;
-    padding: 1rem;
-  }
-
-@media (max-width: 768px) {
-  .notification-dropdown {
-    width: 90%;
-    max-width: 300px;
-    margin: 0 auto;
-  }
+.profile-section {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  position: relative;
 }
-  
-  .notification-dropdown.active {
-    display: block;
-  }
-  
-  .notification-item {
-    padding: 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
-    cursor: pointer;
-  }
-  
-  .notification-item:last-child {
-    border-bottom: none;
-  }
-  
-  .notification-item:hover {
-    background-color: #f9fafb;
-  }
-  
-  .notification-title {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: #1f2937;
-  }
-  
-  .notification-message {
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-  
-  .notification-time {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    margin-top: 0.25rem;
-  }
-  
-  .notification-item.unread {
-    background-color: #f2f7f4;
-  }
-  
-  .notification-item.unread .notification-title {
-    color: #3d7059;
-  }
-  
-  .no-notifications {
-    text-align: center;
-    padding: 1rem;
-    color: #6b7280;
-  }
+
+.notification-container {
+  position: relative;
+  z-index: 1000;
+}
+
+.notification-button {
+  position: relative;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  color: #3d7059;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.dropdown-menu {
+position: absolute;
+top: 100%;
+right: 0;
+z-index: 1000;
+min-width: 10rem;
+padding: 0.5rem 0;
+margin: 0.125rem 0 0;
+background-color: #fff;
+background-clip: padding-box;
+border: 1px solid rgba(0, 0, 0, 0.1);
+border-radius: 0.5rem;
+box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.notification-dropdown {
+position: absolute;
+width: 300px;
+background-color: white;
+border-radius: 0.5rem;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+z-index: 1000;
+max-height: 80vh;
+overflow-y: auto;
+display: none;
+}
+
+.notification-item {
+padding: 0.75rem 1rem;
+border-bottom: 1px solid #e5e7eb;
+cursor: pointer;
+position: relative;
+display: flex;
+align-items: center;
+}
+
+.notification-item:last-child {
+border-bottom: none;
+}
+
+.notification-item:hover {
+background-color: #f9fafb;
+}
+
+.notification-content {
+flex: 1;
+}
+
+.notification-title {
+font-weight: 600;
+margin-bottom: 0.25rem;
+color: #1f2937;
+padding-right: 30px;
+}
+
+.notification-message {
+font-size: 0.875rem;
+color: #6b7280;
+}
+
+.notification-time {
+font-size: 0.75rem;
+color: #9ca3af;
+margin-top: 0.25rem;
+}
+
+.notification-item.unread {
+background-color: #f2f7f4;
+}
+
+.notification-item.unread .notification-title {
+color: #3d7059;
+}
+
+.no-notifications {
+text-align: center;
+padding: 1rem;
+color: #6b7280;
+}
+
+.notification-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 0.5rem;
+padding: 0.75rem 1rem;
+border-bottom: 1px solid #e5e7eb;
+}
+
+.notification-header h3 {
+margin: 0;
+font-size: 1rem;
+}
+
+.clear-all-btn {
+  font-size: 0.75rem;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.clear-all-btn:hover {
+  background-color: #fee2e2;
+}
+
+.delete-notification-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.delete-notification-btn:hover {
+  opacity: 1;
+}
+
+/* Add this to ensure proper stacking */
+#user-profile {
+  position: relative;
+  z-index: 1000;
+}
+
+#profile-dropdown {
+  z-index: 1000;
+}
+
+#notification-dropdown.active {
+  z-index: 1001;
+}
+
+#profile-dropdown.active {
+  z-index: 1001;
+}
 `
     document.head.appendChild(notificationStyles)
   }
@@ -268,14 +381,19 @@ document.addEventListener("DOMContentLoaded", () => {
       // Get read notifications from localStorage
       const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
 
-      // Filter unread notifications
-      const unreadNotifications = sharedCapsules.filter((capsule) => !readNotifications.includes(capsule.id))
+      // Get deleted notifications from localStorage
+      const deletedNotifications = JSON.parse(localStorage.getItem(`deletedNotifications_${currentUser.id}`) || "[]")
+
+      // Filter unread and non-deleted notifications
+      const filteredNotifications = sharedCapsules.filter((capsule) => !deletedNotifications.includes(capsule.id))
+
+      const unreadNotifications = filteredNotifications.filter((capsule) => !readNotifications.includes(capsule.id))
 
       // Update notification badge
       updateNotificationBadge(unreadNotifications.length)
 
       // Update notification dropdown content
-      updateNotificationDropdown(sharedCapsules, readNotifications)
+      updateNotificationDropdown(filteredNotifications, readNotifications)
 
       return unreadNotifications.length
     } catch (error) {
@@ -310,19 +428,26 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sort notifications by creation date (newest first)
     notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
+    // Limit to 7 notifications
+    const limitedNotifications = notifications.slice(0, 7)
+
     let notificationsHTML = `<div class="notification-header">
       <h3>Notifications</h3>
+      <button class="clear-all-btn" id="clear-all-notifications">Clear All</button>
     </div>`
 
-    notifications.forEach((notification) => {
+    limitedNotifications.forEach((notification) => {
       const isRead = readNotifications.includes(notification.id)
       const timeAgo = getTimeAgo(new Date(notification.createdAt))
 
       notificationsHTML += `
         <div class="notification-item ${isRead ? "" : "unread"}" data-id="${notification.id}">
-          <div class="notification-title">New Time Capsule Shared</div>
-          <div class="notification-message">${notification.userName} shared "${notification.title}" with you</div>
-          <div class="notification-time">${timeAgo}</div>
+          <div class="notification-content">
+            <div class="notification-title">New Time Capsule Shared</div>
+            <div class="notification-message">${notification.userName} shared "${notification.title}" with you</div>
+            <div class="notification-time">${timeAgo}</div>
+          </div>
+          <button class="delete-notification-btn" data-id="${notification.id}">×</button>
         </div>
       `
     })
@@ -331,12 +456,89 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add event listeners to notification items
     dropdown.querySelectorAll(".notification-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        const capsuleId = item.getAttribute("data-id")
-        viewCapsule(capsuleId)
-        markNotificationAsRead(capsuleId)
+      item.addEventListener("click", (e) => {
+        // Only proceed if the click wasn't on the delete button
+        if (!e.target.classList.contains("delete-notification-btn")) {
+          const capsuleId = item.getAttribute("data-id")
+          viewCapsule(capsuleId)
+          markNotificationAsRead(capsuleId)
+        }
       })
     })
+
+    // Add event listeners to delete buttons
+    dropdown.querySelectorAll(".delete-notification-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation() // Prevent triggering the parent click event
+        const notificationId = btn.getAttribute("data-id")
+        deleteNotification(notificationId)
+      })
+    })
+
+    // Add event listener to clear all button
+    const clearAllBtn = document.getElementById("clear-all-notifications")
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener("click", (e) => {
+        e.stopPropagation() // Prevent triggering other click events
+        clearAllNotifications(limitedNotifications.map((n) => n.id))
+      })
+    }
+  }
+
+  // Function to delete a specific notification
+  function deleteNotification(notificationId) {
+    // Get current deleted notifications
+    const deletedNotifications = JSON.parse(localStorage.getItem(`deletedNotifications_${currentUser.id}`) || "[]")
+
+    // Add this notification to the deleted list if not already there
+    if (!deletedNotifications.includes(notificationId)) {
+      deletedNotifications.push(notificationId)
+      localStorage.setItem(`deletedNotifications_${currentUser.id}`, JSON.stringify(deletedNotifications))
+    }
+
+    // Update the UI immediately
+    const notificationItem = document.querySelector(`.notification-item[data-id="${notificationId}"]`)
+    if (notificationItem) {
+      notificationItem.remove()
+    }
+
+    // Check if there are any notifications left
+    const remainingItems = document.querySelectorAll(".notification-item")
+    if (remainingItems.length === 0) {
+      const dropdown = document.getElementById("notification-dropdown")
+      if (dropdown) {
+        dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+      }
+    }
+
+    // Update the badge count
+    const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
+    const unreadCount = document.querySelectorAll(".notification-item.unread").length
+    updateNotificationBadge(unreadCount)
+  }
+
+  // Function to clear all notifications
+  function clearAllNotifications(notificationIds) {
+    // Get current deleted notifications
+    const deletedNotifications = JSON.parse(localStorage.getItem(`deletedNotifications_${currentUser.id}`) || "[]")
+
+    // Add all current notifications to the deleted list
+    notificationIds.forEach((id) => {
+      if (!deletedNotifications.includes(id)) {
+        deletedNotifications.push(id)
+      }
+    })
+
+    localStorage.setItem(`deletedNotifications_${currentUser.id}`, JSON.stringify(deletedNotifications))
+
+    // Update the UI
+    const dropdown = document.getElementById("notification-dropdown")
+    if (dropdown) {
+      dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+    }
+
+    // Update the badge
+    updateNotificationBadge(0)
   }
 
   // Function to mark all notifications as read
@@ -412,22 +614,47 @@ document.addEventListener("DOMContentLoaded", () => {
   // Check for notifications when the page loads
   checkForNewNotifications()
 
-  // Set up periodic notification check (every 60 seconds)
-  setInterval(checkForNewNotifications, 60000)
+  // Set up periodic notification check (every 15 seconds)
+  setInterval(checkForNewNotifications, 15000)
 
-  // Toggle profile dropdown
   const userProfile = document.getElementById("user-profile")
   const profileDropdown = document.getElementById("profile-dropdown")
 
+  // In the userProfile click event handler, update it to properly close the notification dropdown
   if (userProfile && profileDropdown) {
     userProfile.addEventListener("click", (e) => {
       e.stopPropagation()
+
+      // Close any other open dropdowns first
+      document.querySelectorAll(".dropdown-menu.active").forEach((dropdown) => {
+        if (dropdown.id !== "profile-dropdown") {
+          dropdown.classList.remove("active")
+          dropdown.style.display = "none" // Make sure to hide the dropdown
+        }
+      })
+
       profileDropdown.classList.toggle("active")
+
+      // Make sure the dropdown is visible when active
+      if (profileDropdown.classList.contains("active")) {
+        profileDropdown.style.display = "block"
+        profileDropdown.style.zIndex = "1001" // Higher z-index when active
+      } else {
+        profileDropdown.style.display = "none"
+        profileDropdown.style.zIndex = "1000" // Reset z-index when inactive
+      }
     })
+
+    // Add dropdown-menu class to profile dropdown for consistent styling
+    if (profileDropdown) {
+      profileDropdown.classList.add("dropdown-menu")
+    }
 
     // Close dropdown when clicking outside
     document.addEventListener("click", () => {
       profileDropdown.classList.remove("active")
+      profileDropdown.style.display = "none"
+      profileDropdown.style.zIndex = "1000" // Reset z-index when closed
     })
   }
 
@@ -779,42 +1006,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  // Add CSS for the video removal button and drag-over effect
-  const videoStyleCSS = document.createElement("style")
-  videoStyleCSS.textContent = `
-  .video-container {
-    position: relative;
-  }
-  
-  .remove-video-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    color: #ef4444;
-    z-index: 10;
-  }
-  
-  .remove-video-btn:hover {
-    background-color: rgba(255, 255, 255, 1);
-  }
-  
-  .drag-over {
-    border-color: #3d7059;
-    background-color: rgba(61, 112, 89, 0.05);
-  }
-`
-  document.head.appendChild(videoStyleCSS)
-
   // Recipients functionality
   const recipientInput = document.getElementById("recipient")
   const recipientDropdown = document.getElementById("recipient-dropdown")
@@ -1035,7 +1226,7 @@ document.addEventListener("DOMContentLoaded", () => {
           contentTypes += `
             <div class="capsule-content-type">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Photos
             </div>
@@ -1108,7 +1299,11 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             
             <div class="flex gap-3" style="gap: 0.8rem;">
-              <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
+              <button class="btn btn-outline btn-sm view-capsule-btn" 
+                data-id="${capsule.id}" 
+                ${!isDelivered ? "disabled" : ""} 
+                style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
+                title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
                 ${isDelivered ? "View" : "Sealed"}
               </button>
               ${
@@ -1150,6 +1345,27 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", function () {
           const capsuleId = this.getAttribute("data-id")
           archiveCapsule(capsuleId)
+        })
+      })
+
+      // Let's also add a click handler for sealed capsules to show a message
+      // After the event listeners section in loadCapsules function, add:
+      document.querySelectorAll(".view-capsule-btn[disabled]").forEach((btn) => {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault()
+          e.stopPropagation()
+          const capsuleId = this.getAttribute("data-id")
+
+          // Find the capsule to get its delivery date
+          const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+          const capsule = allCapsules.find((c) => c.id === capsuleId)
+
+          if (capsule) {
+            const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
+            alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+          } else {
+            alert("This time capsule is not yet available to view.")
+          }
         })
       })
     } catch (error) {
@@ -1318,7 +1534,11 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             
             <div class="flex gap-3" style="gap: 0.8rem;">
-              <button class="btn btn-outline btn-sm view-capsule-btn" data-id="${capsule.id}" ${!isDelivered ? "disabled" : ""}>
+              <button class="btn btn-outline btn-sm view-capsule-btn" 
+                data-id="${capsule.id}" 
+                ${!isDelivered ? "disabled" : ""} 
+                style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
+                title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
                 ${isDelivered ? "View" : "Sealed"}
               </button>
               <button class="btn btn-primary btn-sm unarchive-capsule-btn" data-id="${capsule.id}">
@@ -1343,6 +1563,27 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.addEventListener("click", function () {
           const capsuleId = this.getAttribute("data-id")
           unarchiveCapsule(capsuleId)
+        })
+      })
+
+      // Let's also add a click handler for sealed capsules to show a message
+      // After the event listeners section in loadCapsules function, add:
+      document.querySelectorAll(".view-capsule-btn[disabled]").forEach((btn) => {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault()
+          e.stopPropagation()
+          const capsuleId = this.getAttribute("data-id")
+
+          // Find the capsule to get its delivery date
+          const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
+          const capsule = allCapsules.find((c) => c.id === capsuleId)
+
+          if (capsule) {
+            const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
+            alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+          } else {
+            alert("This time capsule is not yet available to view.")
+          }
         })
       })
 
