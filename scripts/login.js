@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // API base URL - change this to your actual API server
+  const API_BASE_URL = "https://timecap.glitch.me";
+  
   // Get DOM elements
   const loginForm = document.getElementById("login-form")
   const emailInput = document.getElementById("email")
@@ -27,8 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setLoading(true)
 
     try {
-      // Send login request to server
-      const response = await fetch("/api/auth/login", {
+      // Send login request to server - using the correct endpoint
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,4 +76,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 })
-
