@@ -14,7 +14,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Check if this is a shared capsule view
   const urlParams = new URLSearchParams(window.location.search)
-  const sharedCapsuleId = urlParams.get("capsule")
+  const viewType = urlParams.get("view")
+  const sharedCapsuleId = urlParams.get("capsule") // Define sharedCapsuleId here
+
+  // Navigation function
+  function navigateTo(pageId) {
+    // Hide all pages
+    document.querySelectorAll(".page").forEach((page) => {
+      page.classList.remove("active")
+    })
+
+    // Show the selected page
+    const targetPage = document.getElementById(pageId)
+    if (targetPage) {
+      targetPage.classList.add("active")
+    }
+
+    // Scroll to top
+    window.scrollTo(0, 0)
+  }
+
+  // Dummy functions to satisfy the linter.  These should be defined elsewhere.
+  function _loadCapsules() {
+    console.warn("loadCapsules() function is not defined.  Please define it in your code.")
+  }
+
+  function _loadArchivedCapsules() {
+    console.warn("loadArchivedCapsules() function is not defined.  Please define it in your code.")
+  }
+
+  function _loadSharedCapsule(sharedCapsuleId) {
+    console.warn("loadSharedCapsule() function is not defined. Please define it in your code.")
+  }
+
+  // Now that navigateTo is defined, we can use it with the URL parameters
+  if (viewType === "recent") {
+    navigateTo("view-page")
+    loadCapsules()
+    // Clear the URL parameter after navigation
+    window.history.replaceState({}, document.title, window.location.pathname)
+  } else if (viewType === "archived") {
+    navigateTo("view-page")
+    loadArchivedCapsules()
+    // Clear the URL parameter after navigation
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
 
   if (sharedCapsuleId) {
     loadSharedCapsule(sharedCapsuleId)
@@ -718,8 +762,8 @@ font-size: 1rem;
   const viewButton = document.getElementById("view-button")
   if (viewButton) {
     viewButton.addEventListener("click", () => {
-      navigateTo("view-page")
-      loadCapsules()
+      // Reload the page and then navigate to view-page with a parameter
+      window.location.href = "index.html?view=recent"
     })
   }
 
@@ -727,8 +771,8 @@ font-size: 1rem;
   const viewArchivedButton = document.getElementById("view-archived-button")
   if (viewArchivedButton) {
     viewArchivedButton.addEventListener("click", () => {
-      navigateTo("view-page")
-      loadArchivedCapsules()
+      // Reload the page and then navigate to view-page with a parameter
+      window.location.href = "index.html?view=archived"
     })
   }
 
@@ -1214,28 +1258,58 @@ font-size: 1rem;
         userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
       }
 
-      if (userCapsules.length === 0) {
-        noCapsules.style.display = "block"
-        return
-      }
-
-      noCapsules.style.display = "none"
+      // Filter out archived capsules
+      const activeCapsules = userCapsules.filter((capsule) => !capsule.isArchived)
 
       // Clear previous capsules
       const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
       existingCapsules.forEach((capsule) => capsule.remove())
 
+      // Remove any existing view switch buttons
+      const existingSwitchBtn = document.getElementById("view-archived-capsules-btn")
+      if (existingSwitchBtn) {
+        existingSwitchBtn.parentElement.remove()
+      }
+
+      if (activeCapsules.length === 0) {
+        // Show the "No capsules" message
+        noCapsules.style.display = "block"
+        noCapsules.innerHTML = `
+        <h2 class="mb-4">No Active Capsules Yet</h2>
+        <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't created any time capsules yet. Create your first one now!</p>
+        <button class="btn btn-primary" id="create-first-capsule-btn">Create Your First Capsule</button>
+        <button class="btn btn-outline mt-3" id="view-archived-capsules-btn">View Archived Capsules</button>
+      `
+
+        // Add event listener for the create first capsule button
+        const createFirstCapsuleBtn = document.getElementById("create-first-capsule-btn")
+        if (createFirstCapsuleBtn) {
+          createFirstCapsuleBtn.addEventListener("click", () => {
+            navigateTo("create-page")
+          })
+        }
+
+        // Add event listener for the view archived capsules button
+        const viewArchivedCapsules = document.getElementById("view-archived-capsules-btn")
+        if (viewArchivedCapsules) {
+          viewArchivedCapsules.addEventListener("click", () => {
+            loadArchivedCapsules()
+          })
+        }
+
+        return
+      }
+
+      // If we have active capsules, hide the "No capsules" message
+      noCapsules.style.display = "none"
+
       // Sort capsules by creation date (newest first)
-      userCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      activeCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
       // Create capsule cards
-      userCapsules.forEach((capsule) => {
+      activeCapsules.forEach((capsule) => {
         const isDelivered = new Date(capsule.deliveryDate) <= new Date()
         const isSharedWithMe = capsule.isSharedWithMe === true
-        const isArchived = capsule.isArchived === true
-
-        // Skip archived capsules
-        if (isArchived) return
 
         const capsuleCard = document.createElement("div")
         capsuleCard.className = "capsule-card"
@@ -1243,115 +1317,115 @@ font-size: 1rem;
         let contentTypes = ""
         if (capsule.message) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Letter
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Letter
+          </div>
+        `
         }
 
         if (capsule.hasImages) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Photos
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Photos
+          </div>
+        `
         }
 
         if (capsule.hasVideo) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Video
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Video
+          </div>
+        `
         }
 
         // Show recipients count if any
         let recipientsInfo = ""
         if (capsule.recipients && capsule.recipients.length > 0) {
           recipientsInfo = `
-          <div class="capsule-recipients">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
-          </div>
-        `
+        <div class="capsule-recipients">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
+        </div>
+      `
         }
 
         // Add shared badge if this capsule was shared with the current user
         let sharedBadge = ""
         if (isSharedWithMe) {
           sharedBadge = `
-          <div class="capsule-shared-badge">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Shared with you by ${capsule.userName}</span>
-          </div>
-        `
+        <div class="capsule-shared-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          <span>Shared with you by ${capsule.userName}</span>
+        </div>
+      `
         }
 
         capsuleCard.innerHTML = `
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
-                <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                  ${isDelivered ? "Delivered" : "Sealed"}
-                </div>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
+              <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
+                ${isDelivered ? "Delivered" : "Sealed"}
               </div>
-              
-              ${sharedBadge}
-              
-              <div class="flex items-center text-sm text-gray-500 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>
-                  Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
-                </span>
-              </div>
-              
-              <div class="flex flex-wrap gap-2 mb-2">
-                ${contentTypes}
-              </div>
-              
-              ${recipientsInfo}
             </div>
             
-            <div class="flex gap-3" style="gap: 0.8rem;">
-              <button class="btn btn-outline btn-sm view-capsule-btn" 
-                data-id="${capsule.id}" 
-                ${!isDelivered ? "disabled" : ""} 
-                style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
-                title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
-                ${isDelivered ? "View" : "Sealed"}
-              </button>
-              ${
-                !isSharedWithMe
-                  ? `
-                <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
-                  Delete
-                </button>
-              `
-                  : `
-                <button class="btn btn-secondary btn-sm archive-capsule-btn" data-id="${capsule.id}">
-                  Archive
-                </button>
-              `
-              }
+            ${sharedBadge}
+            
+            <div class="flex items-center text-sm text-gray-500 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>
+                Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+              </span>
             </div>
+            
+            <div class="flex flex-wrap gap-2 mb-2">
+              ${contentTypes}
+            </div>
+            
+            ${recipientsInfo}
           </div>
-        `
+          
+          <div class="flex gap-3" style="gap: 0.8rem;">
+            <button class="btn btn-outline btn-sm view-capsule-btn" 
+              data-id="${capsule.id}" 
+              ${!isDelivered ? "disabled" : ""} 
+              style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
+              title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
+              ${isDelivered ? "View" : "Sealed"}
+            </button>
+            ${
+              !isSharedWithMe
+                ? `
+              <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
+                Delete
+              </button>
+            `
+                : `
+              <button class="btn btn-secondary btn-sm archive-capsule-btn" data-id="${capsule.id}">
+                Archive
+              </button>
+            `
+            }
+          </div>
+        </div>
+      `
 
         capsulesContainer.appendChild(capsuleCard)
       })
@@ -1379,7 +1453,6 @@ font-size: 1rem;
       })
 
       // Let's also add a click handler for sealed capsules to show a message
-      // After the event listeners section in loadCapsules function, add:
       document.querySelectorAll(".view-capsule-btn[disabled]").forEach((btn) => {
         btn.addEventListener("click", function (e) {
           e.preventDefault()
@@ -1398,6 +1471,21 @@ font-size: 1rem;
           }
         })
       })
+
+      // Add a button to switch to archived capsules
+      const switchButton = document.createElement("div")
+      switchButton.className = "text-center mt-4"
+      switchButton.innerHTML = `
+      <button class="btn btn-outline" id="view-archived-capsules-btn">View Archived Capsules</button>
+    `
+      capsulesContainer.appendChild(switchButton)
+
+      const viewArchivedCapsules = document.getElementById("view-archived-capsules-btn")
+      if (viewArchivedCapsules) {
+        viewArchivedCapsules.addEventListener("click", () => {
+          loadArchivedCapsules()
+        })
+      }
     } catch (error) {
       console.error("Error loading capsules:", error)
       alert("Failed to load your time capsules. Please try again later.")
@@ -1428,13 +1516,23 @@ font-size: 1rem;
       // Filter only archived capsules
       const archivedCapsules = userCapsules.filter((capsule) => capsule.isArchived === true)
 
+      // Clear previous capsules
+      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
+      existingCapsules.forEach((capsule) => capsule.remove())
+
+      // Remove any existing view switch buttons
+      const existingSwitchBtn = document.getElementById("view-active-capsules-btn")
+      if (existingSwitchBtn) {
+        existingSwitchBtn.parentElement.remove()
+      }
+
       if (archivedCapsules.length === 0) {
         noCapsules.style.display = "block"
         noCapsules.innerHTML = `
-          <h2 class="mb-4">No Archived Capsules</h2>
-          <p style="color: #6b7280; margin-bottom: 1.5rem;">You don't have any archived capsules yet.</p>
-          <button class="btn btn-primary" id="view-active-capsules-btn">View Active Capsules</button>
-        `
+        <h2 class="mb-4">No Archived Capsules</h2>
+        <p style="color: #6b7280; margin-bottom: 1.5rem;">You don't have any archived capsules yet.</p>
+        <button class="btn btn-primary" id="view-active-capsules-btn">View Active Capsules</button>
+      `
 
         // Add event listener for the view active capsules button
         const viewActiveCapsules = document.getElementById("view-active-capsules-btn")
@@ -1448,10 +1546,6 @@ font-size: 1rem;
       }
 
       noCapsules.style.display = "none"
-
-      // Clear previous capsules
-      const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
-      existingCapsules.forEach((capsule) => capsule.remove())
 
       // Sort capsules by creation date (newest first)
       archivedCapsules.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -1467,116 +1561,116 @@ font-size: 1rem;
         let contentTypes = ""
         if (capsule.message) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Letter
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Letter
+          </div>
+        `
         }
 
         if (capsule.hasImages) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Photos
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            Photos
+          </div>
+        `
         }
 
         if (capsule.hasVideo) {
           contentTypes += `
-            <div class="capsule-content-type">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Video
-            </div>
-          `
+          <div class="capsule-content-type">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Video
+          </div>
+        `
         }
 
         // Show recipients count if any
         let recipientsInfo = ""
         if (capsule.recipients && capsule.recipients.length > 0) {
           recipientsInfo = `
-          <div class="capsule-recipients">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
-          </div>
-        `
+        <div class="capsule-recipients">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          Shared with ${capsule.recipients.length} ${capsule.recipients.length === 1 ? "person" : "people"}
+        </div>
+      `
         }
 
         // Add shared badge if this capsule was shared with the current user
         let sharedBadge = ""
         if (isSharedWithMe) {
           sharedBadge = `
-          <div class="capsule-shared-badge">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            <span>Shared with you by ${capsule.userName}</span>
-          </div>
-        `
+        <div class="capsule-shared-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          <span>Shared with you by ${capsule.userName}</span>
+        </div>
+      `
         }
 
         // Add archived badge
         const archivedBadge = `
-          <div class="capsule-archived-badge">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-            <span>Archived</span>
-          </div>
-        `
+        <div class="capsule-archived-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+          <span>Archived</span>
+        </div>
+      `
 
         capsuleCard.innerHTML = `
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
-                <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                  ${isDelivered ? "Delivered" : "Sealed"}
-                </div>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
+              <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
+                ${isDelivered ? "Delivered" : "Sealed"}
               </div>
-              
-              ${sharedBadge}
-              ${archivedBadge}
-              
-              <div class="flex items-center text-sm text-gray-500 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>
-                  Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
-                </span>
-              </div>
-              
-              <div class="flex flex-wrap gap-2 mb-2">
-                ${contentTypes}
-              </div>
-              
-              ${recipientsInfo}
             </div>
             
-            <div class="flex gap-3" style="gap: 0.8rem;">
-              <button class="btn btn-outline btn-sm view-capsule-btn" 
-                data-id="${capsule.id}" 
-                ${!isDelivered ? "disabled" : ""} 
-                style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
-                title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
-                ${isDelivered ? "View" : "Sealed"}
-              </button>
-              <button class="btn btn-primary btn-sm unarchive-capsule-btn" data-id="${capsule.id}">
-                Unarchive
-              </button>
+            ${sharedBadge}
+            ${archivedBadge}
+            
+            <div class="flex items-center text-sm text-gray-500 mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style="margin-right: 0.25rem;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>
+                Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+              </span>
             </div>
+            
+            <div class="flex flex-wrap gap-2 mb-2">
+              ${contentTypes}
+            </div>
+            
+            ${recipientsInfo}
           </div>
-        `
+          
+          <div class="flex gap-3" style="gap: 0.8rem;">
+            <button class="btn btn-outline btn-sm view-capsule-btn" 
+              data-id="${capsule.id}" 
+              ${!isDelivered ? "disabled" : ""} 
+              style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
+              title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
+              ${isDelivered ? "View" : "Sealed"}
+            </button>
+            <button class="btn btn-primary btn-sm unarchive-capsule-btn" data-id="${capsule.id}">
+              Unarchive
+            </button>
+          </div>
+        </div>
+      `
 
         capsulesContainer.appendChild(capsuleCard)
       })
@@ -1597,7 +1691,6 @@ font-size: 1rem;
       })
 
       // Let's also add a click handler for sealed capsules to show a message
-      // After the event listeners section in loadCapsules function, add:
       document.querySelectorAll(".view-capsule-btn[disabled]").forEach((btn) => {
         btn.addEventListener("click", function (e) {
           e.preventDefault()
@@ -1621,8 +1714,8 @@ font-size: 1rem;
       const switchButton = document.createElement("div")
       switchButton.className = "text-center mt-4"
       switchButton.innerHTML = `
-        <button class="btn btn-outline" id="view-active-capsules-btn">View Active Capsules</button>
-      `
+      <button class="btn btn-outline" id="view-active-capsules-btn">View Active Capsules</button>
+    `
       capsulesContainer.appendChild(switchButton)
 
       const viewActiveCapsules = document.getElementById("view-active-capsules-btn")
@@ -1818,7 +1911,13 @@ font-size: 1rem;
         if (!response.ok) {
           const contentType = response.headers.get("Content-Type")
           if (contentType && contentType.includes("application/json")) {
-            const error = await response.json()
+            let error
+            try {
+              error = await response.json()
+            } catch (parseError) {
+              console.error("Failed to parse error JSON", parseError)
+              throw new Error("Failed to create time capsule: Server returned an invalid JSON error response")
+            }
             throw new Error(error.error || "Failed to create time capsule")
           } else {
             const rawError = await response.text()
@@ -2324,6 +2423,51 @@ font-size: 1rem;
           recipientSearchResults.innerHTML = ""
           recipientSearchResults.classList.remove("active")
         }
+        
+      } try {} catch (error){
+        console.error("Error searching users:", error)
+
+        // Fallback to local search if server search fails
+        const allUsers = JSON.parse(localStorage.getItem("users") || "[]")
+        const filteredUsers = allUsers.filter(
+          (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+        )
+
+        if (filteredUsers.length > 0) {
+          recipientSearchResults.innerHTML = ""
+
+          filteredUsers.forEach((user) => {
+            // Skip if already selected
+            if (modalSelectedRecipients.some((r) => r.id === user.id)) return
+
+            const item = document.createElement("div")
+            item.className = "recipient-search-item"
+            item.innerHTML = `
+            <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
+            <div class="recipient-info">
+              <div class="recipient-name">${user.name}</div>
+              <div class="recipient-email">${user.email}</div>
+            </div>
+          `
+
+            item.addEventListener("click", () => {
+              if (!modalSelectedRecipients.some((r) => r.id === user.id)) {
+                modalSelectedRecipients.push(user)
+                updateSelectedRecipientsUI()
+              }
+              recipientSearch.value = ""
+              recipientSearchResults.innerHTML = ""
+              recipientSearchResults.classList.remove("active")
+            })
+
+            recipientSearchResults.appendChild(item)
+          })
+
+          recipientSearchResults.classList.add("active")
+        } else {
+          recipientSearchResults.innerHTML = ""
+          recipientSearchResults.classList.remove("active")
+        }
       }
     })
   }
@@ -2495,41 +2639,24 @@ font-size: 1rem;
     })
   }
 
-  // Navigation function
-  function navigateTo(pageId) {
-    // Hide all pages
-    document.querySelectorAll(".page").forEach((page) => {
-      page.classList.remove("active")
-    })
+  // Navigation function - REMOVE DUPLICATE
+  // function navigateTo(pageId) {
+  //   // Hide all pages
+  //   document.querySelectorAll(".page").forEach((page) => {
+  //     page.classList.remove("active")
+  //   })
 
-    // Show the selected page
-    const targetPage = document.getElementById(pageId)
-    if (targetPage) {
-      targetPage.classList.add("active")
-    }
+  //   // Show the selected page
+  //   const targetPage = document.getElementById(pageId)
+  //   if (targetPage) {
+  //     targetPage.classList.add("active")
+  //   }
 
-    // Scroll to top
-    window.scrollTo(0, 0)
-  }
+  //   // Scroll to top
+  //   window.scrollTo(0, 0)
+  // }
 
   // Declare the functions
-  async function loadSharedCapsule(capsuleId) {
-    try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to load shared capsule")
-      }
-
-      const capsule = await response.json()
-
-      loadSharedCapsuleView(capsule)
-    } catch (error) {
-      console.error("Error loading shared capsule:", error)
-      alert("Failed to load shared time capsule. Please try again later.")
-    }
-  }
-
   async function viewCapsule(capsuleId) {
     try {
       const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
@@ -2567,6 +2694,22 @@ font-size: 1rem;
     } catch (error) {
       console.error("Error sharing capsule:", error)
       throw error // Re-throw the error so the calling function knows it failed
+    }
+  }
+  async function loadSharedCapsule(capsuleId) {
+    try {
+      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to load shared capsule")
+      }
+
+      const capsule = await response.json()
+
+      loadSharedCapsuleView(capsule)
+    } catch (error) {
+      console.error("Error loading shared capsule:", error)
+      alert("Failed to load shared time capsule. Please try again later.")
     }
   }
 })
