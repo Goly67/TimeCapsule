@@ -396,6 +396,22 @@ font-size: 1rem;
     document.head.appendChild(notificationStyles)
   }
 
+  // Load delivered capsules
+async function loadDeliveredCapsules() {
+  try {
+    const response = await fetch('/api/admin/capsules/delivered');
+    const data = await response.json();
+    
+    // Store capsules globally - make sure we're accessing the capsules array
+    deliveredCapsules = data.capsules;
+    
+    // Rest of your function...
+  } catch (error) {
+    console.error('Error loading delivered capsules:', error);
+    // Error handling...
+  }
+}
+
   // Function to check for new notifications
   async function checkForNewNotifications() {
     try {
