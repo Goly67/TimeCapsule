@@ -1,7 +1,7 @@
-    // Countdown Timer
+    // Set to a fixed date and time (UTC)
+    const launchDate = new Date("2025-04-14T22:00:00Z").getTime(); // 2 days 10 hours from April 12, 2025, 12:00 PM UTC
+
     function updateCountdown() {
-      // Set launch date to 2 days and 10 hours from now
-      const launchDate = new Date(startTime + (2 * 24 + 10) * 60 * 60 * 1000).getTime();
       const now = new Date().getTime();
       const distance = launchDate - now;
 
@@ -21,11 +21,10 @@
       }
     }
 
-    const startTime = new Date().getTime();
     updateCountdown();
     const countdownInterval = setInterval(updateCountdown, 1000);
 
-    // Blob Background Animation
+    // Blob Animation (unchanged)
     (() => {
       const canvas = document.getElementById("blob-canvas");
       if (!canvas) return;
