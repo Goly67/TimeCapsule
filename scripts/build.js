@@ -1,7 +1,7 @@
 // Countdown Timer
 function updateCountdown() {
     // Set the launch date (adjust as needed)
-    const launchDate = new Date("2025-13-04T02:10:00").getTime();
+    const launchDate = new Date(Date.now() + (2 * 24 + 10) * 60 * 60 * 1000).getTime();
     const now = new Date().getTime();
     const distance = launchDate - now;
     
