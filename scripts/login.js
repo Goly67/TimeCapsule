@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const password = document.getElementById('password').value;
     
     try {
-      const response = await fetch('https://timecap.glitch.me/api/login', {
+      const response = await fetch('https://timecap2.glitch.me/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

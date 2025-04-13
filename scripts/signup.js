@@ -71,7 +71,7 @@ signupForm.addEventListener('submit', async (e) => {
   signupButton.disabled = true;
 
   try {
-    const response = await fetch('https://timecap.glitch.me/api/signup', {
+    const response = await fetch('https://timecap2.glitch.me/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })

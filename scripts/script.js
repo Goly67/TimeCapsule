@@ -396,27 +396,11 @@ font-size: 1rem;
     document.head.appendChild(notificationStyles)
   }
 
-  // Load delivered capsules
-async function loadDeliveredCapsules() {
-  try {
-    const response = await fetch('/api/admin/capsules/delivered');
-    const data = await response.json();
-    
-    // Store capsules globally - make sure we're accessing the capsules array
-    deliveredCapsules = data.capsules;
-    
-    // Rest of your function...
-  } catch (error) {
-    console.error('Error loading delivered capsules:', error);
-    // Error handling...
-  }
-}
-
   // Function to check for new notifications
   async function checkForNewNotifications() {
     try {
       // Try to fetch capsules from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
 
       let userCapsules = []
 
@@ -835,7 +819,7 @@ async function loadDeliveredCapsules() {
   async function updateUser(userId, updatedData) {
     try {
       // First attempt to update on server
-      const response = await fetch(`https://timecap.glitch.me/api/users/${userId}`, {
+      const response = await fetch(`https://timecap2.glitch.me/api/users/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1115,7 +1099,7 @@ async function loadDeliveredCapsules() {
 
       try {
         // Fetch users from server
-        const response = await fetch(`https://timecap.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
+        const response = await fetch(`https://timecap2.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
 
         if (!response.ok) {
           throw new Error("Failed to search users")
@@ -1262,7 +1246,7 @@ async function loadDeliveredCapsules() {
 
     try {
       // Try to fetch capsules from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
 
       let userCapsules = []
 
@@ -1517,7 +1501,7 @@ async function loadDeliveredCapsules() {
 
     try {
       // Try to fetch capsules from server
-      const response = await fetch(`https://timecap.glitch.me/api/capsules?userId=${currentUser.id}`)
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
 
       let userCapsules = []
 
@@ -1749,7 +1733,7 @@ async function loadDeliveredCapsules() {
   // Add the archive capsule function
   async function archiveCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/archive`, {
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/archive`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1791,7 +1775,7 @@ async function loadDeliveredCapsules() {
   // Add the unarchive capsule function
   async function unarchiveCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/unarchive`, {
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/unarchive`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1918,7 +1902,7 @@ async function loadDeliveredCapsules() {
         }
 
         // Send data to server
-        const response = await fetch("https://timecap.glitch.me/api/capsules", {
+        const response = await fetch("https://timecap2.glitch.me/api/capsules", {
           method: "POST",
           body: formData,
         })
@@ -2095,7 +2079,7 @@ async function loadDeliveredCapsules() {
             // It's a file path, make sure it's a full URL
             photoUrl = photo.startsWith("http")
               ? photo
-              : `https://timecap.glitch.me${photo.startsWith("/") ? "" : "/"}${photo}`
+              : `https://timecap2.glitch.me${photo.startsWith("/") ? "" : "/"}${photo}`
           }
 
           if (photoUrl) {
@@ -2104,7 +2088,7 @@ async function loadDeliveredCapsules() {
             photosHTML += `
             <div class="gallery-item">
               <img src="${photoUrl}" alt="Time Capsule Photo" 
-                   onerror="this.onerror=null; this.src='https://timecap.glitch.me/photo/${typeof photo === "string" ? photo.split("/").pop() : ""}';">
+                   onerror="this.onerror=null; this.src='https://timecap2.glitch.me/photo/${typeof photo === "string" ? photo.split("/").pop() : ""}';">
               <a href="${photoUrl}" download="time-capsule-photo-${index + 1}.jpg" class="save-photo-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -2155,7 +2139,7 @@ async function loadDeliveredCapsules() {
         // It's a file path
         videoSrc = capsule.videoPath.startsWith("http")
           ? capsule.videoPath
-          : `https://timecap.glitch.me${capsule.videoPath.startsWith("/") ? "" : "/"}${capsule.videoPath}`
+          : `https://timecap2.glitch.me${capsule.videoPath.startsWith("/") ? "" : "/"}${capsule.videoPath}`
       }
 
       videoSection.innerHTML = `
@@ -2168,7 +2152,7 @@ async function loadDeliveredCapsules() {
       </div>
       <div class="video-container">
         <video controls src="${videoSrc}" 
-               onerror="this.onerror=null; this.src='https://timecap.glitch.me/video/${capsule.videoPath ? capsule.videoPath.split("/").pop() : ""}';">
+               onerror="this.onerror=null; this.src='https://timecap2.glitch.me/video/${capsule.videoPath ? capsule.videoPath.split("/").pop() : ""}';">
           Your browser does not support the video tag.
         </video>
       </div>
@@ -2266,7 +2250,7 @@ async function loadDeliveredCapsules() {
       if (capsuleToDelete) {
         try {
           // Try to delete from server
-          const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleToDelete}`, {
+          const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleToDelete}`, {
             method: "DELETE",
           })
 
@@ -2351,7 +2335,7 @@ async function loadDeliveredCapsules() {
 
       try {
         // Fetch users from server
-        const response = await fetch(`https://timecap.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
+        const response = await fetch(`https://timecap2.glitch.me/api/users/search?q=${encodeURIComponent(query)}`)
 
         if (!response.ok) {
           throw new Error("Failed to search users")
@@ -2605,7 +2589,7 @@ async function loadDeliveredCapsules() {
 
         // Try to update on server first
         try {
-          const response = await fetch(`https://timecap.glitch.me/api/users/${currentUser.id}`, {
+          const response = await fetch(`https://timecap2.glitch.me/api/users/${currentUser.id}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -2675,7 +2659,7 @@ async function loadDeliveredCapsules() {
   // Declare the functions
   async function viewCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}`)
 
       if (!response.ok) {
         throw new Error("Failed to load capsule")
@@ -2692,7 +2676,7 @@ async function loadDeliveredCapsules() {
 
   async function shareCapsuleWithRecipients(capsuleId, recipients) {
     try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}/share`, {
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/share`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2714,7 +2698,7 @@ async function loadDeliveredCapsules() {
   }
   async function loadSharedCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap.glitch.me/api/capsules/${capsuleId}`)
+      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}`)
 
       if (!response.ok) {
         throw new Error("Failed to load shared capsule")
