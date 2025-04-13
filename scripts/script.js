@@ -893,8 +893,8 @@ font-size: 1rem;
   if (photoInput && photoPreview) {
     photoInput.addEventListener("change", (e) => {
       if (e.target.files.length > 0) {
-        // Check if adding these files would exceed the 6 photo limit
-        if (uploadedPhotos.length + e.target.files.length > 6) {
+        // Check if adding these files would exceed the 2 photo limit
+        if (uploadedPhotos.length + e.target.files.length > 2) {
           alert("You can only upload a maximum of 6 photos. Please remove some photos first or select fewer photos.")
           return
         }
@@ -2796,4 +2796,3 @@ font-size: 1rem;
 
   animate()
 })()
-
