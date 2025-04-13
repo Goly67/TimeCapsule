@@ -895,7 +895,7 @@ font-size: 1rem;
       if (e.target.files.length > 0) {
         // Check if adding these files would exceed the 2 photo limit
         if (uploadedPhotos.length + e.target.files.length > 2) {
-          alert("You can only upload a maximum of 6 photos. Please remove some photos first or select fewer photos.")
+          alert("You can only upload a maximum of 2 photos. Please remove some photos first or select fewer photos.")
           return
         }
 
