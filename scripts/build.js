@@ -1,7 +1,7 @@
 // Countdown Timer
 function updateCountdown() {
     // Set the launch date (adjust as needed)
-    const launchDate = new Date("2025-04-04T00:00:00").getTime();
+    const launchDate = new Date("2025-04-17T00:00:00").getTime();
     const now = new Date().getTime();
     const distance = launchDate - now;
     
@@ -20,7 +20,7 @@ function updateCountdown() {
     // If the countdown is over, display a message
     if (distance < 0) {
       clearInterval(countdownInterval);
-      document.getElementById("countdown").innerHTML = "<h2>We're launching soon!</h2>";
+      document.getElementById("countdown").innerHTML = "<h2>One moment!</h2>";
     }
   }
   
