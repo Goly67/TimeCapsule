@@ -17,6 +17,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewType = urlParams.get("view")
   const sharedCapsuleId = urlParams.get("capsule") // Define sharedCapsuleId here
 
+  const now = new Date().getTime();
+  const sixMinutes = 6 * 60 * 1000; // 6 minutes in milliseconds
+  const lastShown = localStorage.getItem('lastLoadingScreen');
+
+  const shouldShowLoading = () => {
+    if (!lastShown) return true;
+    const elapsed = now - parseInt(lastShown);
+    return elapsed >= sixMinutes;
+  };
+
+  if (shouldShowLoading() && document.readyState !== 'complete') {
+    const loadingScreen = document.getElementById('loading-screen');
+    const progressBar = document.getElementById('progress-bar');
+    loadingScreen.style.display = 'flex';
+
+    // Save the time we showed the screen
+    localStorage.setItem('lastLoadingScreen', now);
+
+    const startTime = Date.now();
+    const duration = 30000; // 30 seconds
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      let progress = (elapsed / duration) * 100;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+      }
+      progressBar.style.width = progress + '%';
+    }, 100);
+
+    // Hide it smoothly after load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+      }, 30500); // Wait for the full bar + a lil’ fade time
+    });
+  }
+
   // Navigation function
   function navigateTo(pageId) {
     // Hide all pages
