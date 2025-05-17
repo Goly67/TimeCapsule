@@ -16,6 +16,20 @@
 </head>
 
 <body>
+
+<div id="loading-screen" style="display: none;">
+  <h2 style="color: #000; margin-top: 20px; font-weight: 600; font-size: 1.75rem;">
+    Preparing your experience...
+  </h2>
+  <p style="color: #000; margin-top: 3px; font-size: 1rem;">
+  Just a moment — we’re waking things up (usually takes less than a minute)!
+</p>
+
+  <div id="progress-bar-container">
+    <div id="progress-bar"></div>
+  </div>
+</div>
+
   <!-- Beta Banner -->
   <div class="beta-banner">
     <span class="beta-tag">BETA</span>
@@ -351,12 +365,12 @@
             Back to Home
           </a>
 
-          <h1>Your Time Capsules</h1>
+          <h1>Your Active Capsules</h1>
 
           <div id="capsules-container">
             <!-- Capsules will be loaded here -->
             <div id="no-capsules" class="card text-center">
-              <h2 class="mb-4">No Time Capsules Yet</h2>
+              <h2 class="mb-4">No Capsules Yet</h2>
               <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't created any time capsules yet.</p>
               <button class="btn btn-primary" id="create-first-capsule-btn">Create Your First Capsule</button>
             </div>
@@ -413,4 +427,3 @@
 </body>
 
 </html>
-
