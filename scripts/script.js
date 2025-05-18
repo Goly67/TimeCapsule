@@ -1983,9 +1983,6 @@ font-size: 1rem;
           userName: currentUser.name,
         }
 
-        const existingCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        localStorage.setItem("timeCapsules", JSON.stringify([...existingCapsules, capsule]))
-
         // If there are recipients, share the capsule with them
         if (selectedRecipients.length > 0) {
           try {
