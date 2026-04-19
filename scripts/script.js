@@ -597,42 +597,34 @@ font-size: 1rem;
   // Function to check for new notifications
   async function checkForNewNotifications() {
     try {
-      // Fetch capsules shared with the user from Firestore
-      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email)));
-      let userCapsules = [];
+      // Fetch capsules where current user is in recipients array
+      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.id)));
+      let sharedCapsules = [];
       sharedCapsulesQuery.forEach(docSnap => {
-        userCapsules.push({ id: docSnap.id, ...docSnap.data() });
+        sharedCapsules.push({ id: docSnap.id, ...docSnap.data() });
       });
 
-      // Filter only capsules shared with the user
-      const sharedCapsules = userCapsules.filter(
-        (capsule) =>
-          capsule.recipients &&
-          capsule.recipients.some((recipient) => recipient.id === currentUser.id) &&
-          capsule.isSharedWithMe === true,
-      )
-
       // Get read notifications from localStorage
-      const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]")
+      const readNotifications = JSON.parse(localStorage.getItem(`readNotifications_${currentUser.id}`) || "[]");
 
       // Get deleted notifications from localStorage
-      const deletedNotifications = JSON.parse(localStorage.getItem(`deletedNotifications_${currentUser.id}`) || "[]")
+      const deletedNotifications = JSON.parse(localStorage.getItem(`deletedNotifications_${currentUser.id}`) || "[]");
 
       // Filter unread and non-deleted notifications
-      const filteredNotifications = sharedCapsules.filter((capsule) => !deletedNotifications.includes(capsule.id))
+      const filteredNotifications = sharedCapsules.filter((capsule) => !deletedNotifications.includes(capsule.id));
 
-      const unreadNotifications = filteredNotifications.filter((capsule) => !readNotifications.includes(capsule.id))
+      const unreadNotifications = filteredNotifications.filter((capsule) => !readNotifications.includes(capsule.id));
 
       // Update notification badge
-      updateNotificationBadge(unreadNotifications.length)
+      updateNotificationBadge(unreadNotifications.length);
 
       // Update notification dropdown content
-      updateNotificationDropdown(filteredNotifications, readNotifications)
+      updateNotificationDropdown(filteredNotifications, readNotifications);
 
-      return unreadNotifications.length
+      return unreadNotifications.length;
     } catch (error) {
-      console.error("Error checking for notifications:", error)
-      return 0
+      console.debug("Notifications check skipped:", error.message);
+      return 0;
     }
   }
 
@@ -1399,28 +1391,28 @@ font-size: 1rem;
 
   // Load user's capsules
   async function loadCapsules() {
-    const capsulesContainer = document.getElementById("capsules-container")
-    const noCapsules = document.getElementById("no-capsules")
+    const capsulesContainer = document.getElementById("capsules-container");
+    const noCapsules = document.getElementById("no-capsules");
 
-    if (!capsulesContainer || !noCapsules) return
+    if (!capsulesContainer || !noCapsules) return;
 
     try {
-      // Fetch capsules from Firestore
-      const userCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('userId', '==', currentUser.id)));
+      // Fetch capsules owned by the user
+      const userCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('ownerId', '==', currentUser.id)));
       let userCapsules = [];
       userCapsulesQuery.forEach(docSnap => {
         userCapsules.push({ id: docSnap.id, ...docSnap.data() });
       });
 
-      // Also fetch shared capsules
-      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email)));
+      // Also fetch shared capsules (where user is in recipients)
+      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.id)));
       sharedCapsulesQuery.forEach(docSnap => {
         const capsule = { id: docSnap.id, ...docSnap.data(), isSharedWithMe: true };
         userCapsules.push(capsule);
       });
 
       // Filter out archived capsules
-      const activeCapsules = userCapsules.filter((capsule) => !capsule.isArchived)
+      const activeCapsules = userCapsules.filter((capsule) => !capsule.isArchived);
 
       // Clear previous capsules
       const existingCapsules = capsulesContainer.querySelectorAll(".capsule-card")
@@ -1655,21 +1647,21 @@ font-size: 1rem;
 
   // Add the function to load archived capsules
   async function loadArchivedCapsules() {
-    const capsulesContainer = document.getElementById("capsules-container")
-    const noCapsules = document.getElementById("no-capsules")
+    const capsulesContainer = document.getElementById("capsules-container");
+    const noCapsules = document.getElementById("no-capsules");
 
-    if (!capsulesContainer || !noCapsules) return
+    if (!capsulesContainer || !noCapsules) return;
 
     try {
-      // Fetch archived capsules from Firestore owned by the user
-      const userArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('userId', '==', currentUser.id), where('isArchived', '==', true)));
+      // Fetch archived capsules owned by the user
+      const userArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('ownerId', '==', currentUser.id), where('isArchived', '==', true)));
       let userCapsules = [];
       userArchiveQuery.forEach(docSnap => {
         userCapsules.push({ id: docSnap.id, ...docSnap.data() });
       });
 
       // Also fetch archived capsules shared with the user
-      const sharedArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email), where('isArchived', '==', true)));
+      const sharedArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.id), where('isArchived', '==', true)));
       sharedArchiveQuery.forEach(docSnap => {
         const capsule = { id: docSnap.id, ...docSnap.data(), isSharedWithMe: true };
         userCapsules.push(capsule);
@@ -2042,9 +2034,9 @@ font-size: 1rem;
           message: message || "",
           deliveryDate: new Date(deliveryDate).toISOString(),
           createdAt: new Date().toISOString(),
-          userId: currentUser.id,
+          ownerId: currentUser.id,
           userName: currentUser.name,
-          recipients: selectedRecipients,
+          recipients: selectedRecipients.map(r => typeof r === 'string' ? r : r.id),
           photoFileIds,
           videoFileId,
           hasImages: photoFileIds.length > 0,
@@ -2739,26 +2731,8 @@ font-size: 1rem;
   }
 
   async function shareCapsuleWithRecipients(capsuleId, recipients) {
-    try {
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/share`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          recipients: recipients.map((r) => r.id),
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to share capsule")
-      }
-
-      console.log("Capsule shared successfully with recipients")
-    } catch (error) {
-      console.error("Error sharing capsule:", error)
-      throw error // Re-throw the error so the calling function knows it failed
-    }
+    // Sharing via Firestore recipients array - no additional API call needed
+    console.debug(`Capsule shared with ${recipients.length} recipients`);
   }
   async function loadSharedCapsule(capsuleId) {
     try {
