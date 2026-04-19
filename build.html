@@ -11,9 +11,67 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/11327/11327008.png" type="image/x-icon">
   <link rel="stylesheet" href="styles/build.css">
+
+  <!-- Translation System -->
+  <script src="scripts/translate.js"></script>
+
+  <style>
+    .language-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      gap: 8px;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .language-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .language-btn.active {
+      background: #3d7059;
+      color: white;
+    }
+    
+    .language-btn:hover {
+      background: #e0e0e0;
+    }
+    
+    .language-btn.active:hover {
+      background: #2d5a47;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- Language Toggle -->
+  <div class="language-toggle">
+    <button class="language-btn" id="langEN" onclick="window.translationManager.setLanguage('en')" title="English">EN</button>
+    <button class="language-btn" id="langZH" onclick="window.translationManager.setLanguage('zh')" title="中文">中文</button>
+  </div>
+
+  <script>
+    // Update active language button
+    function updateLanguageButtons() {
+      const lang = window.translationManager.getLanguage();
+      document.getElementById('langEN').classList.toggle('active', lang === 'en');
+      document.getElementById('langZH').classList.toggle('active', lang === 'zh');
+    }
+    updateLanguageButtons();
+  </script>
   <!-- Beta Banner -->
   <div class="beta-banner">
     <span class="beta-tag">BETA</span>

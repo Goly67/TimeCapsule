@@ -1,9 +1,57 @@
+// Import Firebase modules
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, query, where, collection, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDS7UIstLBEDbqZ54AnWJAPVEHGzi-cmYY",
+  authDomain: "time-capsule-app-3949d.firebaseapp.com",
+  projectId: "time-capsule-app-3949d",
+  storageBucket: "time-capsule-app-3949d.firebasestorage.app",
+  messagingSenderId: "857936766098",
+  appId: "1:857936766098:web:735ba0c119e3ccf466724b",
+  measurementId: "G-LSSL19VW69",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Helper function to check if input is an email
+function isEmail(input) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+}
+
+// Helper function to get email from username
+async function getEmailFromUsername(username) {
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('username', '==', username.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userData = querySnapshot.docs[0].data();
+      return userData.authEmail || userData.email;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting email from username:', error);
+    return null;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  // Check if user is already logged in
+  // Flag to prevent redirect loops
+  let isRedirecting = false;
+  
+  // Check if user is already logged in (only once at page load)
   const currentUser = localStorage.getItem('currentUser');
-  if (currentUser) {
-    // User is already logged in, redirect to index.html
+  if (currentUser && !isRedirecting) {
+    isRedirecting = true;
     window.location.href = 'index.html';
+    return;
   }
   
   const loginForm = document.getElementById('login-form');
@@ -21,30 +69,45 @@ document.addEventListener('DOMContentLoaded', function() {
     loginSpinner.style.display = 'inline-block';
     errorMessage.style.display = 'none';
     
-    const email = document.getElementById('email').value;
+    const emailOrUsername = document.getElementById('emailOrUsername').value;
     const password = document.getElementById('password').value;
     
     try {
-      const response = await fetch('https://timecap2.glitch.me/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
+      let email = emailOrUsername;
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+      // If input is not an email, treat it as username and look up the email
+      if (!isEmail(emailOrUsername)) {
+        email = await getEmailFromUsername(emailOrUsername);
+        if (!email) {
+          throw new Error('Username not found. Please check and try again.');
+        }
       }
       
-      // Store user data in localStorage
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (!userData) {
+        throw new Error('User profile not found. Please sign up first.');
+      }
+      
+      // Store user data in localStorage BEFORE redirect
+      const currentUserData = {
+        id: user.uid,
+        name: userData.name,
+        username: userData.username || null,
+        email: userData.email || null
+      };
+      localStorage.setItem('currentUser', JSON.stringify(currentUserData));
       
       console.log('Login successful, redirecting to index.html');
+      console.log('Stored user data:', currentUserData);
       
       // Redirect to index.html
+      isRedirecting = true;
       window.location.href = 'index.html';
     } catch (error) {
       // Show error message

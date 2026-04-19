@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://content.googleapis.com; frame-src https://accounts.google.com https://www.gstatic.com https://content.googleapis.com; connect-src 'self' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://firestore.googleapis.com https://content.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://firebaseapp.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;" />
   <title>Time Capsule</title>
 
   <!-- Google Fonts - Poppins + Roboto -->
@@ -11,8 +12,66 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/11327/11327008.png" type="image/x-icon">
   <link rel="stylesheet" href="styles/login.css">
+
+  <!-- Translation System -->
+  <script src="scripts/translate.js"></script>
+
+  <style>
+    .language-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      gap: 8px;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .language-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: #f0f0f0;
+      color: #333;
+    }
+    
+    .language-btn.active {
+      background: #3d7059;
+      color: white;
+    }
+    
+    .language-btn:hover {
+      background: #e0e0e0;
+    }
+    
+    .language-btn.active:hover {
+      background: #2d5a47;
+    }
+  </style>
 </head>
 <body>
+  <!-- Language Toggle -->
+  <div class="language-toggle">
+    <button class="language-btn" id="langEN" onclick="window.translationManager.setLanguage('en')" title="English">EN</button>
+    <button class="language-btn" id="langZH" onclick="window.translationManager.setLanguage('zh')" title="中文">中文</button>
+  </div>
+
+  <script>
+    // Update active language button
+    function updateLanguageButtons() {
+      const lang = window.translationManager.getLanguage();
+      document.getElementById('langEN').classList.toggle('active', lang === 'en');
+      document.getElementById('langZH').classList.toggle('active', lang === 'zh');
+    }
+    updateLanguageButtons();
+  </script>
   <!-- Blob Background Canvas -->
   <canvas id="blob-canvas"></canvas>
 
@@ -20,32 +79,32 @@
     <div class="page-content">
       <div class="auth-container">
         <div class="auth-logo">
-          <h1>Time Capsule</h1>
+          <h1 data-i18n="app.name">Time Capsule</h1>
         </div>
         <div class="auth-card">
-          <h2 class="auth-title">Log In</h2>
+          <h2 class="auth-title" data-i18n="auth.login">Log In</h2>
           
           <div id="error-message" class="error-message" style="display: none;"></div>
           
           <form id="login-form">
             <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" required>
+              <label for="emailOrUsername" data-i18n="auth.emailOrUsername">Email or Username</label>
+              <input type="text" id="emailOrUsername" required>
             </div>
             
             <div class="form-group">
-              <label for="password">Password</label>
+              <label for="password" data-i18n="auth.password">Password</label>
               <input type="password" id="password" required>
             </div>
             
             <button type="submit" class="btn btn-primary btn-block" id="login-button">
-              <span id="login-text">Log In</span>
+              <span id="login-text" data-i18n="auth.signIn">Log In</span>
               <span id="login-spinner" class="loading-spinner" style="display: none;"></span>
             </button>
           </form>
           
           <div class="auth-footer">
-            <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+            <p data-i18n="auth.noAccount">Don't have an account? <a href="signup.html" class="auth-link" data-i18n="auth.signUpNow">Sign Up</a></p>
           </div>
         </div>
       </div>
@@ -55,17 +114,33 @@
     <footer class="footer">
       <div class="container">
         <div class="footer-links">
-          <a href="other/p&s.html" class="footer-link" >Privacy & Security</a>
-          <a href="other/terms.html" class="footer-link" >Terms of Service</a>
-          <a href="other/about.html" class="footer-link" >About Us</a>
+          <a href="other/p&s.html" class="footer-link" data-i18n="footer.privacy">Privacy & Security</a>
+          <a href="other/terms.html" class="footer-link" data-i18n="footer.terms">Terms of Service</a>
+          <a href="other/about.html" class="footer-link" data-i18n="footer.about">About Us</a>
         </div>
         <div class="footer-copyright">
-          &copy; 2025 Time Capsule. All rights reserved.
+          <span data-i18n="footer.copyright">&copy; 2025 Time Capsule. All rights reserved.</span>
         </div>
       </div>
     </footer>
   </div>
 
-  <script src="scripts/login.js" defer></script>
+  <script src="scripts/login.js" type="module" defer></script>
+  
+  <script>
+    // Ensure translation is applied after all content loads
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.translationManager) {
+        window.translationManager.applyLanguage();
+      }
+    });
+    
+    // Also apply translation after module scripts load and page setup completes
+    setTimeout(function() {
+      if (window.translationManager) {
+        window.translationManager.applyLanguage();
+      }
+    }, 100);
+  </script>
 </body>
 </html>

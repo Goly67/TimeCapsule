@@ -1,6 +1,166 @@
-// Check if user is logged in
+// Import Firebase modules
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, deleteDoc, updateDoc, serverTimestamp, arrayUnion } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDS7UIstLBEDbqZ54AnWJAPVEHGzi-cmYY",
+  authDomain: "time-capsule-app-3949d.firebaseapp.com",
+  projectId: "time-capsule-app-3949d",
+  storageBucket: "time-capsule-app-3949d.firebasestorage.app",
+  messagingSenderId: "857936766098",
+  appId: "1:857936766098:web:735ba0c119e3ccf466724b",
+  measurementId: "G-LSSL19VW69",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Google Drive API functions
+let googleAuth;
+let isGoogleSignedIn = false;
+let googleInitPromise = null;
+
+function initGoogleAPI() {
+  // Return existing promise if already initializing
+  if (googleInitPromise) return googleInitPromise;
+  
+  googleInitPromise = new Promise((resolve, reject) => {
+    if (typeof gapi === 'undefined') {
+      console.debug('Google API library not loaded (photos feature disabled)');
+      reject(new Error('Google API library not loaded'));
+      return;
+    }
+    
+    try {
+      gapi.load('client:auth2', () => {
+        gapi.client.init({
+          apiKey: 'AIzaSyCYJJPuOPQxgV1UqRxvrS_35iAcjOhLd-w',
+          clientId: '843080070466-u9ffb6m2ltsicp1oq152e7l1n03da9f4.apps.googleusercontent.com',
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          ux_mode: 'popup'
+        }).then(() => {
+          googleAuth = gapi.auth2.getAuthInstance();
+          if (googleAuth) {
+            googleAuth.isSignedIn.listen(updateSignInStatus);
+            updateSignInStatus(googleAuth.isSignedIn.get());
+            console.debug('Google API initialized successfully');
+            resolve(googleAuth);
+          } else {
+            throw new Error('Failed to get Auth instance');
+          }
+        }).catch(error => {
+          // Silently handle Google API errors - photos feature is disabled anyway
+          console.debug('Google API initialization skipped (photos feature disabled)');
+          reject(error);
+        });
+      });
+    } catch (error) {
+      // Silently handle errors - photos feature is disabled
+      console.debug('Google API not available (photos feature disabled)');
+      reject(error);
+    }
+  });
+  
+  return googleInitPromise;
+}
+
+function updateSignInStatus(isSignedIn) {
+  isGoogleSignedIn = isSignedIn;
+}
+
+async function signInWithGoogle() {
+  try {
+    // Wait for Google API to initialize
+    if (!googleAuth) {
+      await initGoogleAPI();
+    }
+    
+    if (!googleAuth) {
+      throw new Error('Google Auth not available after initialization');
+    }
+    
+    const result = await googleAuth.signIn();
+    console.log('Google Sign In successful');
+    return result;
+  } catch (error) {
+    console.error('Google Sign In error:', error);
+    console.error('Google Sign In error details:', {
+      message: error.message || error.error_description || error.error,
+      details: error.details || error.result || error,
+    });
+    // Provide helpful error message
+    if (error.error === 'idpiframe_initialization_failed') {
+      console.warn('⚠️  Google OAuth Configuration Issue:');
+    } else {
+      alert('Google Sign In failed. Please check the console for details.');
+    }
+    throw error;
+  }
+}
+
+async function uploadFileToDrive(file, filename) {
+  try {
+    console.log(`Uploading file: ${filename}`);
+    
+    if (!isGoogleSignedIn) {
+      console.log('Not signed in to Google, signing in...');
+      await signInWithGoogle();
+    }
+
+    if (!isGoogleSignedIn) {
+      throw new Error('Google Drive sign-in failed - user not signed in');
+    }
+
+    const metadata = {
+      name: filename,
+      mimeType: file.type,
+      parents: ['YOUR_FOLDER_ID'] // Optional: specify a folder
+    };
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', file);
+
+    const accessToken = googleAuth.currentUser.get().getAuthResponse().access_token;
+    
+    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: form
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Upload failed with status ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    console.log('File uploaded successfully:', result.id);
+    return result.id;
+  } catch (error) {
+    console.error('Upload to Drive error:', error);
+    if (error.error === 'idpiframe_initialization_failed') {
+      alert('Google OAuth is not properly configured. Please check the console for setup instructions.');
+    } else {
+      alert(`Upload failed: ${error.message}`);
+    }
+    throw error;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const currentUser = JSON.parse(localStorage.getItem("currentUser"))
+
+  // Initialize Google API
+  initGoogleAPI();
 
   // Profile Edit Modal elements - moved to the top
   const profileEditModal = document.getElementById("profile-edit-modal")
@@ -437,20 +597,12 @@ font-size: 1rem;
   // Function to check for new notifications
   async function checkForNewNotifications() {
     try {
-      // Try to fetch capsules from server
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
-
-      let userCapsules = []
-
-      if (response.ok) {
-        userCapsules = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        userCapsules = allCapsules.filter(
-          (capsule) => capsule.recipients && capsule.recipients.some((recipient) => recipient.id === currentUser.id),
-        )
-      }
+      // Fetch capsules shared with the user from Firestore
+      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email)));
+      let userCapsules = [];
+      sharedCapsulesQuery.forEach(docSnap => {
+        userCapsules.push({ id: docSnap.id, ...docSnap.data() });
+      });
 
       // Filter only capsules shared with the user
       const sharedCapsules = userCapsules.filter(
@@ -856,54 +1008,24 @@ font-size: 1rem;
 
   async function updateUser(userId, updatedData) {
     try {
-      // First attempt to update on server
-      const response = await fetch(`https://timecap2.glitch.me/api/users/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedData),
-      })
+      // Update user in Firestore
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, updatedData);
+      
+      console.log("User updated successfully in Firestore:", updatedData)
 
-      if (!response.ok) {
-        // If server update fails, don't throw error, just log and continue with local update
-        console.warn("Server update failed, updating locally only")
-      } else {
-        const result = await response.json()
-        console.log("User updated successfully on server:", result)
-      }
-
-      // Always update locally regardless of server response
-      // Update in localStorage - both users array and currentUser
-      const users = JSON.parse(localStorage.getItem("users") || "[]")
-      const userIndex = users.findIndex((u) => u.id === userId)
-
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...updatedData }
-        localStorage.setItem("users", JSON.stringify(users))
-      }
-
-      // Update currentUser in localStorage
+      // Also update currentUser in localStorage
       const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}")
       if (currentUser.id === userId) {
         const updatedUser = { ...currentUser, ...updatedData }
         localStorage.setItem("currentUser", JSON.stringify(updatedUser))
       }
 
-      return true // Return success regardless of server response
+      return true
     } catch (error) {
       console.error("Error in updateUser function:", error)
 
-      // Still update locally even if there was an error in the try block
-      const users = JSON.parse(localStorage.getItem("users") || "[]")
-      const userIndex = users.findIndex((u) => u.id === userId)
-
-      if (userIndex !== -1) {
-        users[userIndex] = { ...users[userIndex], ...updatedData }
-        localStorage.setItem("users", JSON.stringify(users))
-      }
-
-      // Update currentUser in localStorage
+      // If Firestore update fails, still update localStorage
       const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}")
       if (currentUser.id === userId) {
         const updatedUser = { ...currentUser, ...updatedData }
@@ -1283,18 +1405,19 @@ font-size: 1rem;
     if (!capsulesContainer || !noCapsules) return
 
     try {
-      // Try to fetch capsules from server
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
+      // Fetch capsules from Firestore
+      const userCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('userId', '==', currentUser.id)));
+      let userCapsules = [];
+      userCapsulesQuery.forEach(docSnap => {
+        userCapsules.push({ id: docSnap.id, ...docSnap.data() });
+      });
 
-      let userCapsules = []
-
-      if (response.ok) {
-        userCapsules = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
-      }
+      // Also fetch shared capsules
+      const sharedCapsulesQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email)));
+      sharedCapsulesQuery.forEach(docSnap => {
+        const capsule = { id: docSnap.id, ...docSnap.data(), isSharedWithMe: true };
+        userCapsules.push(capsule);
+      });
 
       // Filter out archived capsules
       const activeCapsules = userCapsules.filter((capsule) => !capsule.isArchived)
@@ -1538,18 +1661,19 @@ font-size: 1rem;
     if (!capsulesContainer || !noCapsules) return
 
     try {
-      // Try to fetch capsules from server
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules?userId=${currentUser.id}`)
+      // Fetch archived capsules from Firestore owned by the user
+      const userArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('userId', '==', currentUser.id), where('isArchived', '==', true)));
+      let userCapsules = [];
+      userArchiveQuery.forEach(docSnap => {
+        userCapsules.push({ id: docSnap.id, ...docSnap.data() });
+      });
 
-      let userCapsules = []
-
-      if (response.ok) {
-        userCapsules = await response.json()
-      } else {
-        // Fallback to localStorage if server request fails
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        userCapsules = allCapsules.filter((capsule) => capsule.userId === currentUser.id)
-      }
+      // Also fetch archived capsules shared with the user
+      const sharedArchiveQuery = await getDocs(query(collection(db, 'capsules'), where('recipients', 'array-contains', currentUser.email), where('isArchived', '==', true)));
+      sharedArchiveQuery.forEach(docSnap => {
+        const capsule = { id: docSnap.id, ...docSnap.data(), isSharedWithMe: true };
+        userCapsules.push(capsule);
+      });
 
       // Filter only archived capsules
       const archivedCapsules = userCapsules.filter((capsule) => capsule.isArchived === true)
@@ -1771,19 +1895,11 @@ font-size: 1rem;
   // Add the archive capsule function
   async function archiveCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/archive`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to archive capsule")
-      }
+      // Update capsule in Firestore to set isArchived to true
+      const capsuleRef = doc(db, 'capsules', capsuleId);
+      await updateDoc(capsuleRef, {
+        isArchived: true
+      });
 
       // Show success message
       alert("Capsule archived successfully")
@@ -1793,39 +1909,17 @@ font-size: 1rem;
     } catch (error) {
       console.error("Error archiving capsule:", error)
       alert("Failed to archive capsule. Please try again later.")
-
-      // Fallback to local storage if server fails
-      try {
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        const capsuleIndex = allCapsules.findIndex((c) => c.id === capsuleId)
-
-        if (capsuleIndex !== -1) {
-          allCapsules[capsuleIndex].isArchived = true
-          localStorage.setItem("timeCapsules", JSON.stringify(allCapsules))
-          loadCapsules()
-        }
-      } catch (localError) {
-        console.error("Error with local archive fallback:", localError)
-      }
     }
   }
 
   // Add the unarchive capsule function
   async function unarchiveCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}/unarchive`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to unarchive capsule")
-      }
+      // Update capsule in Firestore to set isArchived to false
+      const capsuleRef = doc(db, 'capsules', capsuleId);
+      await updateDoc(capsuleRef, {
+        isArchived: false
+      });
 
       // Show success message
       alert("Capsule unarchived successfully")
@@ -1835,20 +1929,6 @@ font-size: 1rem;
     } catch (error) {
       console.error("Error unarchiving capsule:", error)
       alert("Failed to unarchive capsule. Please try again later.")
-
-      // Fallback to local storage if server fails
-      try {
-        const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-        const capsuleIndex = allCapsules.findIndex((c) => c.id === capsuleId)
-
-        if (capsuleIndex !== -1) {
-          allCapsules[capsuleIndex].isArchived = false
-          localStorage.setItem("timeCapsules", JSON.stringify(allCapsules))
-          loadArchivedCapsules()
-        }
-      } catch (localError) {
-        console.error("Error with local unarchive fallback:", localError)
-      }
     }
   }
 
@@ -1929,71 +2009,60 @@ font-size: 1rem;
           formData.append("hasVideo", "false")
         }
 
-        // Log the form data for debugging
-        console.log("Sending form data to server...")
-        for (const pair of formData.entries()) {
-          if (pair[0] !== "photo" && pair[0] !== "video") {
-            console.log(`${pair[0]}: ${pair[1]}`)
-          } else {
-            console.log(`${pair[0]}: [Binary data]`)
-          }
-        }
-
-        // Send data to server
-        const response = await fetch("https://timecap2.glitch.me/api/capsules", {
-          method: "POST",
-          body: formData,
-        })
-
-        // Validate the response
-        if (!response.ok) {
-          const contentType = response.headers.get("Content-Type")
-          if (contentType && contentType.includes("application/json")) {
-            let error
-            try {
-              error = await response.json()
-            } catch (parseError) {
-              console.error("Failed to parse error JSON", parseError)
-              throw new Error("Failed to create time capsule: Server returned an invalid JSON error response")
+        // Upload photos to Google Drive and get file IDs
+        let photoFileIds = [];
+        if (uploadedPhotos.length > 0) {
+          for (let i = 0; i < uploadedPhotos.length; i++) {
+            const photoData = uploadedPhotos[i].data;
+            const byteString = atob(photoData.split(",")[1]);
+            const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let j = 0; j < byteString.length; j++) {
+              ia[j] = byteString.charCodeAt(j);
             }
-            throw new Error(error.error || "Failed to create time capsule")
-          } else {
-            const rawError = await response.text()
-            console.error("Raw server error response:", rawError)
-            throw new Error("Server returned an invalid response")
+            const blob = new Blob([ab], { type: mimeString });
+
+            const fileId = await uploadFileToDrive(blob, `photo_${i}.jpg`);
+            photoFileIds.push(fileId);
           }
         }
 
-        const result = await response.json()
-        console.log("Server response:", result)
+        // Upload video to Google Drive
+        let videoFileId = null;
+        if (videoDataUrl) {
+          const response = await fetch(videoDataUrl);
+          const videoBlob = await response.blob();
+          videoFileId = await uploadFileToDrive(videoBlob, `video.webm`);
+        }
 
-        // For backward compatibility, also store in localStorage
-        const capsule = {
-          id: result.capsuleId || capsuleId,
+        // Save capsule data to Firestore
+        await setDoc(doc(db, 'capsules', capsuleId), {
           title,
-          message,
-          recipients: selectedRecipients,
-          createdAt: new Date().toISOString(),
+          message: message || "",
           deliveryDate: new Date(deliveryDate).toISOString(),
-          photos: [...uploadedPhotos],
-          videoData: videoDataUrl,
-          hasImages: uploadedPhotos.length > 0,
-          hasVideo: videoDataUrl !== null,
+          createdAt: new Date().toISOString(),
           userId: currentUser.id,
           userName: currentUser.name,
-        }
+          recipients: selectedRecipients,
+          photoFileIds,
+          videoFileId,
+          hasImages: photoFileIds.length > 0,
+          hasVideo: videoFileId !== null,
+          isArchived: false
+        });
 
         // If there are recipients, share the capsule with them
         if (selectedRecipients.length > 0) {
           try {
-            await shareCapsuleWithRecipients(result.capsuleId || capsuleId, selectedRecipients)
+            await shareCapsuleWithRecipients(capsuleId, selectedRecipients);
           } catch (shareError) {
-            console.error("Error sharing capsule:", shareError)
+            console.error("Error sharing capsule:", shareError);
             // Continue even if sharing fails
           }
         }
 
-        alert("Time Capsule created successfully!")
+        alert("Time Capsule created successfully!");
 
         // Reset form
         createCapsuleForm.reset()
@@ -2098,41 +2167,25 @@ font-size: 1rem;
       // Store photo URLs for the "Save All" button
       const photoUrls = []
 
-      // Handle different photo formats
-      if (Array.isArray(capsule.photos)) {
-        capsule.photos.forEach((photo, index) => {
-          let photoUrl = ""
+      // Handle photo file IDs from Google Drive
+      if (Array.isArray(capsule.photoFileIds)) {
+        capsule.photoFileIds.forEach((fileId, index) => {
+          const photoUrl = `https://drive.google.com/uc?id=${fileId}`;
+          const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
 
-          // Check if it's a base64 string or a file path
-          if (typeof photo === "object" && photo.data) {
-            // It's an object with data property (from our updated structure)
-            photoUrl = photo.data
-          } else if (typeof photo === "string" && photo.startsWith("data:image")) {
-            // It's a base64 string
-            photoUrl = photo
-          } else if (typeof photo === "string") {
-            // It's a file path, make sure it's a full URL
-            photoUrl = photo.startsWith("http")
-              ? photo
-              : `https://timecap2.glitch.me${photo.startsWith("/") ? "" : "/"}${photo}`
-          }
+          photoUrls.push({ url: downloadUrl, filename: `time-capsule-photo-${index + 1}.jpg` })
 
-          if (photoUrl) {
-            photoUrls.push({ url: photoUrl, filename: `time-capsule-photo-${index + 1}.jpg` })
-
-            photosHTML += `
-            <div class="gallery-item">
-              <img src="${photoUrl}" alt="Time Capsule Photo" 
-                   onerror="this.onerror=null; this.src='https://timecap2.glitch.me/photo/${typeof photo === "string" ? photo.split("/").pop() : ""}';">
-              <a href="${photoUrl}" download="time-capsule-photo-${index + 1}.jpg" class="save-photo-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Save
-              </a>
-            </div>
-          `
-          }
+          photosHTML += `
+          <div class="gallery-item">
+            <img src="${photoUrl}" alt="Time Capsule Photo" loading="lazy">
+            <a href="${downloadUrl}" download="time-capsule-photo-${index + 1}.jpg" class="save-photo-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Save
+            </a>
+          </div>
+        `
         })
       }
 
@@ -2160,22 +2213,12 @@ font-size: 1rem;
     }
 
     // Add video if exists
-    if (capsule.hasVideo) {
+    if (capsule.hasVideo && capsule.videoFileId) {
       const videoSection = document.createElement("div")
       videoSection.className = "mb-6"
 
-      let videoSrc = ""
-
-      // Handle different video formats
-      if (capsule.videoData && typeof capsule.videoData === "string" && capsule.videoData.startsWith("blob:")) {
-        // It's a blob URL
-        videoSrc = capsule.videoData
-      } else if (capsule.videoPath && typeof capsule.videoPath === "string") {
-        // It's a file path
-        videoSrc = capsule.videoPath.startsWith("http")
-          ? capsule.videoPath
-          : `https://timecap2.glitch.me${capsule.videoPath.startsWith("/") ? "" : "/"}${capsule.videoPath}`
-      }
+      const videoUrl = `https://drive.google.com/uc?id=${capsule.videoFileId}`;
+      const downloadUrl = `https://drive.google.com/uc?export=download&id=${capsule.videoFileId}`;
 
       videoSection.innerHTML = `
       <div class="content-header">
@@ -2183,11 +2226,10 @@ font-size: 1rem;
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
         <h3>Video Message</h3>
-        <a href="${videoSrc}" download="time-capsule-video.mp4" class="btn btn-primary ml-auto save-video-btn">Save Video</a>
+        <a href="${downloadUrl}" download="time-capsule-video.mp4" class="btn btn-primary ml-auto save-video-btn">Save Video</a>
       </div>
       <div class="video-container">
-        <video controls src="${videoSrc}" 
-               onerror="this.onerror=null; this.src='https://timecap2.glitch.me/video/${capsule.videoPath ? capsule.videoPath.split("/").pop() : ""}';">
+        <video controls src="${videoUrl}">
           Your browser does not support the video tag.
         </video>
       </div>
@@ -2246,6 +2288,24 @@ font-size: 1rem;
   
   .gallery-item {
     position: relative;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    min-height: 250px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
   
   .content-header {
@@ -2257,6 +2317,18 @@ font-size: 1rem;
   .content-header h3 {
     margin-left: 0.5rem;
     margin-right: auto;
+  }
+
+  .video-container {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .video-container video {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 `
   document.head.appendChild(saveButtonsStyle)
@@ -2284,15 +2356,9 @@ font-size: 1rem;
     confirmDeleteBtn.addEventListener("click", async () => {
       if (capsuleToDelete) {
         try {
-          // Try to delete from server
-          const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleToDelete}`, {
-            method: "DELETE",
-          })
-
-          // Also delete from localStorage for backward compatibility
-          const allCapsules = JSON.parse(localStorage.getItem("timeCapsules") || "[]")
-          const updatedCapsules = allCapsules.filter((c) => c.id !== capsuleToDelete)
-          localStorage.setItem("timeCapsules", JSON.stringify(updatedCapsules))
+          // Delete from Firestore
+          const capsuleRef = doc(db, 'capsules', capsuleToDelete);
+          await deleteDoc(capsuleRef);
 
           // Close modal
           closeDeleteModal()
@@ -2415,51 +2481,6 @@ font-size: 1rem;
           recipientSearchResults.classList.remove("active")
         }
       } catch (error) {
-        console.error("Error searching users:", error)
-
-        // Fallback to local search if server search fails
-        const allUsers = JSON.parse(localStorage.getItem("users") || "[]")
-        const filteredUsers = allUsers.filter(
-          (user) => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
-        )
-
-        if (filteredUsers.length > 0) {
-          recipientSearchResults.innerHTML = ""
-
-          filteredUsers.forEach((user) => {
-            // Skip if already selected
-            if (modalSelectedRecipients.some((r) => r.id === user.id)) return
-
-            const item = document.createElement("div")
-            item.className = "recipient-search-item"
-            item.innerHTML = `
-            <div class="recipient-avatar">${user.name.charAt(0).toUpperCase()}</div>
-            <div class="recipient-info">
-              <div class="recipient-name">${user.name}</div>
-              <div class="recipient-email">${user.email}</div>
-            </div>
-          `
-
-            item.addEventListener("click", () => {
-              if (!modalSelectedRecipients.some((r) => r.id === user.id)) {
-                modalSelectedRecipients.push(user)
-                updateSelectedRecipientsUI()
-              }
-              recipientSearch.value = ""
-              recipientSearchResults.innerHTML = ""
-              recipientSearchResults.classList.remove("active")
-            })
-
-            recipientSearchResults.appendChild(item)
-          })
-
-          recipientSearchResults.classList.add("active")
-        } else {
-          recipientSearchResults.innerHTML = ""
-          recipientSearchResults.classList.remove("active")
-        }
-        
-      } try {} catch (error){
         console.error("Error searching users:", error)
 
         // Fallback to local search if server search fails
@@ -2694,13 +2715,21 @@ font-size: 1rem;
   // Declare the functions
   async function viewCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to load capsule")
+      // Show loading state
+      const capsulesContainer = document.getElementById("capsules-container")
+      if (capsulesContainer) {
+        capsulesContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Loading capsule...</p></div>'
       }
 
-      const capsule = await response.json()
+      // Fetch capsule from Firestore
+      const capsuleRef = doc(db, 'capsules', capsuleId);
+      const capsuleSnap = await getDoc(capsuleRef);
+      
+      if (!capsuleSnap.exists()) {
+        throw new Error("Capsule not found")
+      }
+
+      const capsule = { id: capsuleSnap.id, ...capsuleSnap.data() }
 
       loadSharedCapsuleView(capsule)
     } catch (error) {
@@ -2733,13 +2762,22 @@ font-size: 1rem;
   }
   async function loadSharedCapsule(capsuleId) {
     try {
-      const response = await fetch(`https://timecap2.glitch.me/api/capsules/${capsuleId}`)
-
-      if (!response.ok) {
-        throw new Error("Failed to load shared capsule")
+      // Show loading state
+      const sharedCapsulePage = document.getElementById("shared-capsule-page")
+      const contentContainer = document.getElementById("shared-capsule-content")
+      if (contentContainer) {
+        contentContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><p>Loading capsule...</p></div>'
       }
 
-      const capsule = await response.json()
+      // Fetch capsule from Firestore
+      const capsuleRef = doc(db, 'capsules', capsuleId);
+      const capsuleSnap = await getDoc(capsuleRef);
+      
+      if (!capsuleSnap.exists()) {
+        throw new Error("Shared capsule not found")
+      }
+
+      const capsule = { id: capsuleSnap.id, ...capsuleSnap.data() }
 
       loadSharedCapsuleView(capsule)
     } catch (error) {
