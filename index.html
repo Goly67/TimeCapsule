@@ -84,17 +84,26 @@
     </div>
 
     <script>
-      // Update active language button
-      function updateLanguageButtons() {
-        const lang = window.translationManager.getLanguage();
-        document.getElementById('langEN').classList.toggle('active', lang === 'en');
-        document.getElementById('langZH').classList.toggle('active', lang === 'zh');
+      // Initialize language buttons safely
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            if (window.translationManager) {
+              window.translationManager.updateLanguageButtons();
+            }
+          }, 100);
+        });
+      } else {
+        setTimeout(() => {
+          if (window.translationManager) {
+            window.translationManager.updateLanguageButtons();
+          }
+        }, 100);
       }
-      updateLanguageButtons();
     </script>
     <div id="loading-screen" style="display: none">
-      <h2 class="loading-title">Preparing your experience...</h2>
-      <p class="loading-subtext">
+      <h2 class="loading-title" data-i18n="loading.title">Preparing your experience...</h2>
+      <p class="loading-subtext" data-i18n="loading.subtext">
         Just a moment — we’re waking things up (usually takes less than a
         minute)!
       </p>
@@ -106,8 +115,8 @@
 
     <!-- Beta Banner -->
     <div class="beta-banner">
-      <span class="beta-tag">BETA</span>
-      <span class="beta-message"
+      <span class="beta-tag" data-i18n="beta.tag">BETA</span>
+      <span class="beta-message" data-i18n="beta.message"
         >We're still improving! Your feedback helps us make Time Capsule
         better.</span
       >
@@ -123,7 +132,7 @@
     <div id="delete-modal" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
-          <h3 class="modal-title">Delete Time Capsule</h3>
+          <h3 class="modal-title" data-i18n="modal.deleteTitle">Delete Time Capsule</h3>
           <button class="modal-close" onclick="closeDeleteModal()">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -143,16 +152,16 @@
           </button>
         </div>
         <div class="modal-body">
-          <p>
+          <p data-i18n="modal.deleteMsg">
             Are you sure you want to delete this time capsule? This action
             cannot be undone.
           </p>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline" onclick="closeDeleteModal()">
+          <button class="btn btn-outline" onclick="closeDeleteModal()" data-i18n="modal.cancel">
             Cancel
           </button>
-          <button id="confirm-delete-btn" class="btn btn-danger">Delete</button>
+          <button id="confirm-delete-btn" class="btn btn-danger" data-i18n="modal.delete">Delete</button>
         </div>
       </div>
     </div>
@@ -161,7 +170,7 @@
     <div id="recipients-modal" class="modal-overlay">
       <div class="modal">
         <div class="modal-header">
-          <h3 class="modal-title">Add Recipients</h3>
+          <h3 class="modal-title" data-i18n="modal.addRecipients">Add Recipients</h3>
           <button class="modal-close" onclick="closeRecipientsModal()">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -181,13 +190,14 @@
           </button>
         </div>
         <div class="modal-body">
-          <p>
+          <p data-i18n="modal.addRecipientsMsg">
             Add people who can view this time capsule after the delivery date.
           </p>
           <div class="form-group">
             <input
               type="text"
               id="recipient-search"
+              data-i18n-placeholder="create.recipientPlaceholder"
               placeholder="Search by name or email..."
               class="recipient-search-input"
             />
@@ -199,10 +209,10 @@
           <div id="selected-recipients" class="selected-recipients"></div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline" onclick="closeRecipientsModal()">
+          <button class="btn btn-outline" onclick="closeRecipientsModal()" data-i18n="modal.cancel">
             Cancel
           </button>
-          <button id="confirm-recipients-btn" class="btn btn-primary">
+          <button id="confirm-recipients-btn" class="btn btn-primary" data-i18n="modal.addRecipients2">
             Add Recipients
           </button>
         </div>
@@ -213,7 +223,7 @@
     <div id="profile-edit-modal" class="modal-overlay profile-edit-modal">
       <div class="modal">
         <div class="modal-header">
-          <h3 class="modal-title">Edit Profile</h3>
+          <h3 class="modal-title" data-i18n="modal.editProfile">Edit Profile</h3>
         </div>
         <div class="modal-body">
           <div class="profile-header">
@@ -235,19 +245,19 @@
               />
             </div>
             <div class="profile-info">
-              <h3>Your Profile</h3>
-              <p>Update your personal information</p>
+              <h3 data-i18n="modal.profileInfo">Your Profile</h3>
+              <p data-i18n="modal.profileDesc">Update your personal information</p>
             </div>
           </div>
 
           <form id="profile-edit-form">
             <div class="form-group">
-              <label for="profile-name">Full Name</label>
+              <label for="profile-name" data-i18n="modal.fullName">Full Name</label>
               <input type="text" id="profile-name" required />
             </div>
 
             <div class="form-group">
-              <label for="profile-email">Email Address</label>
+              <label for="profile-email" data-i18n="modal.emailAddress">Email Address</label>
               <input type="email" id="profile-email" required />
             </div>
 
@@ -259,10 +269,10 @@
           </form>
         </div>
         <div class="modal-footer">
-          <h3 class="modal-title" style="font-size: 18px; margin-top: 0.9rem">
+          <h3 class="modal-title" style="font-size: 18px; margin-top: 0.9rem" data-i18n="modal.closeHint">
             You can close this by clicking outside.
           </h3>
-          <button id="save-profile-btn" class="btn btn-primary">
+          <button id="save-profile-btn" class="btn btn-primary" data-i18n="modal.saveChanges">
             Save Changes
           </button>
         </div>
@@ -275,7 +285,7 @@
         <div class="page-content">
           <div class="container">
             <header class="flex justify-between items-center">
-              <a href="#" class="logo">Time Capsule</a>
+              <a href="#" class="logo" data-i18n="app.name">Time Capsule</a>
               <div class="user-profile" id="user-profile">
                 <div class="profile-picture" id="profile-picture">
                   <div class="profile-initial" id="profile-initial"></div>
@@ -298,7 +308,7 @@
                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                       />
                     </svg>
-                    Edit Profile
+                    <span data-i18n="home.editProfile">Edit Profile</span>
                   </a>
                   <div class="dropdown-divider"></div>
                   <a href="#" class="dropdown-item" id="logout-button">
@@ -317,25 +327,25 @@
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                       />
                     </svg>
-                    Logout
+                    <span data-i18n="home.logout">Logout</span>
                   </a>
                 </div>
               </div>
             </header>
 
             <section class="hero">
-              <h1>Sealed Moments, Timeless Memories</h1>
-              <p>Preserve moments today, rediscover them tomorrow.</p>
+              <h1 data-i18n="home.title">Sealed Moments, Timeless Memories</h1>
+              <p data-i18n="home.subtitle">Preserve moments today, rediscover them tomorrow.</p>
               <div
                 class="flex flex-col gap-4 items-center md:flex-row justify-center"
               >
-                <button class="btn btn-primary" id="create-button">
+                <button class="btn btn-primary" id="create-button" data-i18n="home.createCapsule">
                   Create a Time Capsule
                 </button>
-                <button class="btn btn-outline" id="view-button">
+                <button class="btn btn-outline" id="view-button" data-i18n="home.viewCapsules">
                   View Recent Capsules
                 </button>
-                <button class="btn btn-secondary" id="view-archived-button">
+                <button class="btn btn-secondary" id="view-archived-button" data-i18n="home.viewArchived">
                   View Archived Capsules
                 </button>
               </div>
@@ -361,8 +371,8 @@
                       />
                     </svg>
                   </div>
-                  <h3>Write Letters</h3>
-                  <p>
+                  <h3 data-i18n="feature.letters">Write Letters</h3>
+                  <p data-i18n="feature.lettersDesc">
                     Share your thoughts, feelings, and experiences with your
                     future self or loved ones.
                   </p>
@@ -385,8 +395,8 @@
                       />
                     </svg>
                   </div>
-                  <h3>Upload Photos</h3>
-                  <p>
+                  <h3 data-i18n="feature.photos">Upload Photos</h3>
+                  <p data-i18n="feature.photosDesc">
                     Preserve visual memories that capture special moments in
                     your life.
                   </p>
@@ -409,8 +419,8 @@
                       />
                     </svg>
                   </div>
-                  <h3>Upload Videos</h3>
-                  <p>Create video messages that bring your memories to life.</p>
+                  <h3 data-i18n="feature.videos">Upload Videos</h3>
+                  <p data-i18n="feature.videosDesc">Stay tuned for this! We are planning to add this soon.</p>
                 </div>
               </div>
             </section>
@@ -421,16 +431,16 @@
         <footer class="footer">
           <div class="container">
             <div class="footer-links">
-              <a href="other/p&s.html" class="footer-link"
+              <a href="other/p&s.html" class="footer-link" data-i18n="footer.privacy"
                 >Privacy & Security</a
               >
-              <a href="other/terms.html" class="footer-link"
+              <a href="other/terms.html" class="footer-link" data-i18n="footer.terms"
                 >Terms of Service</a
               >
-              <a href="other/about.html" class="footer-link">About Us</a>
+              <a href="other/about.html" class="footer-link" data-i18n="footer.about">About Us</a>
             </div>
-            <div class="footer-copyright">
-              &copy; 2025 Time Capsule. All rights reserved.
+            <div class="footer-copyright" data-i18n="footer.copyright">
+              &copy; 2026 Time Capsule. All rights reserved.
             </div>
           </div>
         </footer>
@@ -458,30 +468,32 @@
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Back to Home
+              <span data-i18n="create.back">Back to Home</span>
             </a>
 
             <div class="card">
-              <h1>Create Your Time Capsule</h1>
+              <h1 data-i18n="create.capsuleTitle">Create Your Time Capsule</h1>
 
               <form id="create-capsule-form">
                 <div class="form-group">
-                  <label for="title">Title</label>
+                  <label for="title" data-i18n="create.titleLabel">Title</label>
                   <input
                     type="text"
                     id="title"
+                    data-i18n-placeholder="create.titlePlaceholder"
                     placeholder="My Time Capsule"
                     required
                   />
                 </div>
 
                 <div class="form-group">
-                  <label for="recipient">Recipients</label>
+                  <label for="recipient" data-i18n="create.recipientLabel">Recipients</label>
                   <div class="recipient-field">
                     <div id="recipient-tags" class="recipient-tags"></div>
                     <input
                       type="text"
                       id="recipient"
+                      data-i18n-placeholder="create.recipientPlaceholder"
                       placeholder="Add recipients..."
                       autocomplete="off"
                     />
@@ -490,27 +502,28 @@
                       class="recipient-dropdown"
                     ></div>
                   </div>
-                  <small class="form-text"
+                  <small class="form-text" data-i18n="create.recipientHelp"
                     >Add people who can view this capsule after delivery</small
                   >
                 </div>
 
                 <div class="form-group">
-                  <label for="delivery-date">Delivery Date</label>
+                  <label for="delivery-date" data-i18n="create.deliveryLabel">Delivery Date</label>
                   <input type="date" id="delivery-date" required />
                 </div>
 
                 <div class="tabs">
-                  <div class="tab active" data-tab="letter">Letter</div>
-                  <div class="tab" data-tab="photos">Photos</div>
-                  <div class="tab" data-tab="video">Video</div>
+                  <div class="tab active" data-tab="letter" data-i18n="create.letterTab">Letter</div>
+                  <div class="tab" data-tab="photos" data-i18n="create.photosTab">Photos</div>
+                  <div class="tab" data-tab="video" data-i18n="create.videoTab">Video</div>
                 </div>
 
                 <div id="letter-tab" class="tab-content active">
                   <div class="form-group">
-                    <label for="message">Your Message</label>
+                    <label for="message" data-i18n="create.messageLabel">Your Message</label>
                     <textarea
                       id="message"
+                      data-i18n-placeholder="create.messagePlaceholder"
                       placeholder="Write your message to the future..."
                     ></textarea>
                   </div>
@@ -518,7 +531,7 @@
 
                 <div id="photos-tab" class="tab-content">
                   <div class="form-group">
-                    <label>Upload Photos</label>
+                    <label data-i18n="create.uploadPhotos">Upload Photos</label>
                     <div class="file-photo-upload" id="photo-upload">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -546,6 +559,7 @@
                           color: #6b7280;
                           margin-bottom: 1rem;
                         "
+                        data-i18n="create.comingSoon"
                       >
                         Coming soon...
                       </p>
@@ -557,15 +571,16 @@
                         style="display: none"
                         disabled
                       />
-                      <!-- <button
+                      <button
                         type="button"
                         class="btn btn-outline"
                         id="select-photos-btn"
                         disabled
                         style="opacity: 0.5; cursor: not-allowed;"
+                        data-i18n="create.selectPhotos"
                       >
                         Select Photos (Coming Soon)
-                      </button> -->
+                      </button>
                     </div>
                     <div
                       id="photo-preview"
@@ -577,7 +592,7 @@
 
                 <div id="video-tab" class="tab-content">
                   <div class="form-group">
-                    <label>Upload Videos</label>
+                    <label data-i18n="create.uploadVideos">Upload Videos</label>
                     <div class="file-video-upload" id="">
                       <!--video-upload-->
                       <svg
@@ -606,6 +621,7 @@
                           color: #6b7280;
                           margin-bottom: 1rem;
                         "
+                        data-i18n="create.comingSoon"
                       >
                         Coming soon...
                         <!--Drag and drop your videos here,
@@ -632,6 +648,7 @@
                           type="button"
                           id="change-video"
                           class="btn btn-outline"
+                          data-i18n="create.changeVideo"
                         >
                           Change Video
                         </button>
@@ -639,6 +656,7 @@
                           type="button"
                           id="remove-video"
                           class="btn btn-outline"
+                          data-i18n="create.removeVideo"
                         >
                           Remove Video
                         </button>
@@ -648,7 +666,7 @@
                 </div>
 
                 <div class="mt-6">
-                  <button type="submit" class="btn btn-primary btn-block">
+                  <button type="submit" class="btn btn-primary btn-block" data-i18n="create.submit">
                     Create Time Capsule
                   </button>
                 </div>
@@ -665,23 +683,26 @@
                 href="other/p&s.html"
                 class="footer-link"
                 id="privacy-link-create"
+                data-i18n="footer.privacy"
                 >Privacy & Security</a
               >
               <a
                 href="other/terms.html"
                 class="footer-link"
                 id="terms-link-create"
+                data-i18n="footer.terms"
                 >Terms of Service</a
               >
               <a
                 href="other/about.html"
                 class="footer-link"
                 id="contact-link-create"
+                data-i18n="footer.about"
                 >About Us</a
               >
             </div>
-            <div class="footer-copyright">
-              &copy; 2025 Time Capsule. All rights reserved.
+            <div class="footer-copyright" data-i18n="footer.copyright">
+              &copy; 2026 Time Capsule. All rights reserved.
             </div>
           </div>
         </footer>
@@ -709,19 +730,19 @@
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Back to Home
+              <span data-i18n="view.back">Back to Home</span>
             </a>
 
-            <h1>Your Active Capsules</h1>
+            <h1 data-i18n="view.activeCapsules">Your Active Capsules</h1>
 
             <div id="capsules-container">
               <!-- Capsules will be loaded here -->
               <div id="no-capsules" class="card text-center">
-                <h2 class="mb-4">No Capsules Yet</h2>
-                <p style="color: #6b7280; margin-bottom: 1.5rem">
+                <h2 class="mb-4" data-i18n="view.noCapsules">No Capsules Yet</h2>
+                <p style="color: #6b7280; margin-bottom: 1.5rem" data-i18n="view.noCapsulesSub">
                   You haven't created any time capsules yet.
                 </p>
-                <button class="btn btn-primary" id="create-first-capsule-btn">
+                <button class="btn btn-primary" id="create-first-capsule-btn" data-i18n="view.createFirstCapsule">
                   Create Your First Capsule
                 </button>
               </div>
@@ -733,16 +754,16 @@
         <footer class="footer">
           <div class="container">
             <div class="footer-links">
-              <a href="other/p&s.html" class="footer-link"
+              <a href="other/p&s.html" class="footer-link" data-i18n="footer.privacy"
                 >Privacy & Security</a
               >
-              <a href="other/terms.html" class="footer-link"
+              <a href="other/terms.html" class="footer-link" data-i18n="footer.terms"
                 >Terms of Service</a
               >
-              <a href="other/about.html" class="footer-link">About Us</a>
+              <a href="other/about.html" class="footer-link" data-i18n="footer.about">About Us</a>
             </div>
-            <div class="footer-copyright">
-              &copy; 2025 Time Capsule. All rights reserved.
+            <div class="footer-copyright" data-i18n="footer.copyright">
+              &copy; 2026 Time Capsule. All rights reserved.
             </div>
           </div>
         </footer>
@@ -773,7 +794,7 @@
             </div>
 
             <div class="text-center">
-              <a href="index.html" class="btn btn-primary">Back to Home</a>
+              <a href="index.html" class="btn btn-primary" data-i18n="view.back">Back to Home</a>
             </div>
           </div>
         </div>

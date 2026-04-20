@@ -67,13 +67,22 @@
   </div>
 
   <script>
-    // Update active language button
-    function updateLanguageButtons() {
-      const lang = window.translationManager.getLanguage();
-      document.getElementById('langEN').classList.toggle('active', lang === 'en');
-      document.getElementById('langZH').classList.toggle('active', lang === 'zh');
+    // Initialize language buttons safely
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          if (window.translationManager) {
+            window.translationManager.updateLanguageButtons();
+          }
+        }, 100);
+      });
+    } else {
+      setTimeout(() => {
+        if (window.translationManager) {
+          window.translationManager.updateLanguageButtons();
+        }
+      }, 100);
     }
-    updateLanguageButtons();
   </script>
   <div class="page-wrapper">
     <div class="page-content">

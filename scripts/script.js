@@ -647,7 +647,7 @@ font-size: 1rem;
     if (!dropdown) return
 
     if (notifications.length === 0) {
-      dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+      dropdown.innerHTML = `<div class="no-notifications">${window.t('notification.empty')}</div>`
       return
     }
 
@@ -658,8 +658,8 @@ font-size: 1rem;
     const limitedNotifications = notifications.slice(0, 7)
 
     let notificationsHTML = `<div class="notification-header">
-      <h3>Notifications</h3>
-      <button class="clear-all-btn" id="clear-all-notifications">Clear All</button>
+      <h3>${window.t('notification.title')}</h3>
+      <button class="clear-all-btn" id="clear-all-notifications">${window.t('notification.clearAll')}</button>
     </div>`
 
     limitedNotifications.forEach((notification) => {
@@ -670,10 +670,10 @@ font-size: 1rem;
       notificationsHTML += `
         <div class="notification-item ${isRead ? "" : "unread"}" data-id="${notification.id}" data-delivered="${isDelivered}">
           <div class="notification-content">
-            <div class="notification-title">New Time Capsule Shared</div>
-            <div class="notification-message">${notification.userName} shared "${notification.title}" with you</div>
+            <div class="notification-title">${window.t('notification.sharedTitle')}</div>
+            <div class="notification-message">${window.t('notification.sharedWith', { userName: notification.userName, title: notification.title })}</div>
             <div class="notification-time">${timeAgo}</div>
-            ${!isDelivered ? `<div class="notification-sealed">Sealed until ${new Date(notification.deliveryDate).toLocaleDateString()}</div>` : ""}
+            ${!isDelivered ? `<div class="notification-sealed">${window.t('notification.sealedUntil', { date: new Date(notification.deliveryDate).toLocaleDateString() })}</div>` : ""}
           </div>
           <button class="delete-notification-btn" data-id="${notification.id}">×</button>
         </div>
@@ -699,9 +699,9 @@ font-size: 1rem;
             const capsule = limitedNotifications.find((n) => n.id === capsuleId)
             if (capsule) {
               const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
-              alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+              alert(window.t('notification.sealedAlert', { date: deliveryDate }))
             } else {
-              alert("This time capsule is not yet available to view.")
+              alert(window.t('notification.notAvailable'))
             }
             // Still mark as read even if they can't view it
             markNotificationAsRead(capsuleId)
@@ -763,7 +763,7 @@ font-size: 1rem;
     if (remainingItems.length === 0) {
       const dropdown = document.getElementById("notification-dropdown")
       if (dropdown) {
-        dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+        dropdown.innerHTML = `<div class="no-notifications">${window.t('notification.empty')}</div>`
       }
     }
 
@@ -790,7 +790,7 @@ font-size: 1rem;
     // Update the UI
     const dropdown = document.getElementById("notification-dropdown")
     if (dropdown) {
-      dropdown.innerHTML = `<div class="no-notifications">No notifications</div>`
+      dropdown.innerHTML = `<div class="no-notifications">${window.t('notification.empty')}</div>`
     }
 
     // Update the badge
@@ -1618,9 +1618,9 @@ font-size: 1rem;
 
           if (capsule) {
             const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
-            alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+            alert(window.t('notification.sealedAlert', { date: deliveryDate }))
           } else {
-            alert("This time capsule is not yet available to view.")
+            alert(window.t('notification.notAvailable'))
           }
         })
       })
@@ -1857,9 +1857,9 @@ font-size: 1rem;
 
           if (capsule) {
             const deliveryDate = new Date(capsule.deliveryDate).toLocaleDateString()
-            alert(`This time capsule is sealed until ${deliveryDate}. Please check back then!`)
+            alert(window.t('notification.sealedAlert', { date: deliveryDate }))
           } else {
-            alert("This time capsule is not yet available to view.")
+            alert(window.t('notification.notAvailable'))
           }
         })
       })
