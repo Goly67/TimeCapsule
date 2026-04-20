@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - public read for username lookup
+    match /users/{userId} {
+      allow read;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Capsules collection - stores time capsules with photo/video file IDs from Google Drive
+    match /capsules/{capsuleId} {
+      // Only authenticated users can create capsules
+      allow create: if request.auth != null &&
+                       request.resource.data.ownerId == request.auth.uid;
+      
+      // Read: owner can read their own, recipients can read shared capsules after delivery date
+      allow read: if request.auth != null && 
+                     (resource.data.ownerId == request.auth.uid ||
+                      request.auth.uid in resource.data.recipients);
+      
+      // Update: only owner can update (including adding/modifying photo and video file IDs from Google Drive)
+      allow update: if request.auth != null && 
+                       resource.data.ownerId == request.auth.uid;
+      
+      // Delete: only owner can delete
+      allow delete: if request.auth != null && 
+                       resource.data.ownerId == request.auth.uid;
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if request.auth != null &&
+                     resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null &&
+                       resource.data.userId == request.auth.uid;
+    }
+
+    // Media metadata collection (optional - tracks uploaded media)
+    match /media/{mediaId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && 
+                       resource.data.uploadedBy == request.auth.uid;
+    }
+
+    // Archived capsules - immutable after creation
+    match /archivedCapsules/{archiveId} {
+      allow create: if request.auth != null &&
+                       request.resource.data.ownerId == request.auth.uid;
+      allow read: if request.auth != null && 
+                     resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && 
+                               resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

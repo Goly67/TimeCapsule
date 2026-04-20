@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://content.googleapis.com; frame-src https://accounts.google.com https://www.gstatic.com https://content.googleapis.com; connect-src 'self' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://firestore.googleapis.com https://content.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://firebaseapp.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://content.googleapis.com https://securetoken.googleapis.com https://accounts.google.com https://oauth2.googleapis.com https://*.googleusercontent.com https://*.firebaseapp.com https://firebase.googleapis.com; frame-src https://accounts.google.com https://www.gstatic.com https://content.googleapis.com https://*.googleusercontent.com; connect-src 'self' https://www.gstatic.com https://apis.google.com https://www.googleapis.com https://firestore.googleapis.com https://content.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://firebaseapp.com https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleusercontent.com; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;" />
     <title>Time Capsule</title>
 
     <!-- Google Fonts - Poppins + Roboto -->
@@ -22,6 +22,7 @@
 
     <!-- Google API for Drive -->
     <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- Firebase SDK for Google Auth Provider -->
     <script type="module">
@@ -420,7 +421,7 @@
                     </svg>
                   </div>
                   <h3 data-i18n="feature.videos">Upload Videos</h3>
-                  <p data-i18n="feature.videosDesc">Stay tuned for this! We are planning to add this soon.</p>
+                  <p data-i18n="feature.videosDesc">Create video messages that bring your memories to life.</p>
                 </div>
               </div>
             </section>
@@ -559,9 +560,8 @@
                           color: #6b7280;
                           margin-bottom: 1rem;
                         "
-                        data-i18n="create.comingSoon"
                       >
-                        Coming soon...
+                        Select up to 2 photos to include in your time capsule
                       </p>
                       <input
                         type="file"
@@ -569,17 +569,14 @@
                         accept="image/*"
                         multiple
                         style="display: none"
-                        disabled
                       />
                       <button
                         type="button"
                         class="btn btn-outline"
                         id="select-photos-btn"
-                        disabled
-                        style="opacity: 0.5; cursor: not-allowed;"
                         data-i18n="create.selectPhotos"
                       >
-                        Select Photos (Coming Soon)
+                        Select Photos
                       </button>
                     </div>
                     <div
@@ -593,8 +590,7 @@
                 <div id="video-tab" class="tab-content">
                   <div class="form-group">
                     <label data-i18n="create.uploadVideos">Upload Videos</label>
-                    <div class="file-video-upload" id="">
-                      <!--video-upload-->
+                    <div class="file-video-upload" id="video-upload">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -621,11 +617,8 @@
                           color: #6b7280;
                           margin-bottom: 1rem;
                         "
-                        data-i18n="create.comingSoon"
                       >
-                        Coming soon...
-                        <!--Drag and drop your videos here,
-                      or click to select files-->
+                        Select a video to include in your time capsule
                       </p>
                       <input
                         type="file"
@@ -633,7 +626,7 @@
                         accept="video/*"
                         style="display: none"
                       />
-                      <!--<button type="button" class="btn btn-outline" id="select-video-btn">Select Videos</button>-->
+                      <button type="button" class="btn btn-outline" id="select-video-btn">Select Video</button>
                     </div>
                     <div
                       id="video-preview-container"

@@ -41,9 +41,10 @@ function initGoogleAPI() {
         gapi.client.init({
           apiKey: 'AIzaSyCYJJPuOPQxgV1UqRxvrS_35iAcjOhLd-w',
           clientId: '843080070466-u9ffb6m2ltsicp1oq152e7l1n03da9f4.apps.googleusercontent.com',
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
           scope: 'https://www.googleapis.com/auth/drive.file',
           ux_mode: 'popup'
+        }).then(() => {
+          return gapi.client.load('drive', 'v3');
         }).then(() => {
           googleAuth = gapi.auth2.getAuthInstance();
           if (googleAuth) {
@@ -98,8 +99,57 @@ async function signInWithGoogle() {
     if (error.error === 'idpiframe_initialization_failed') {
       console.warn('⚠️  Google OAuth Configuration Issue:');
     } else {
-      alert('Google Sign In failed. Please check the console for details.');
+      alert(window.t('msg.googleSignInFailed'));
     }
+    throw error;
+  }
+}
+
+async function getOrCreateUserFolder() {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const folderName = `TimeCapsule_${user.uid}`;
+    const accessToken = googleAuth.currentUser.get().getAuthResponse().access_token;
+
+    // First, try to find existing folder
+    const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (searchResponse.ok) {
+      const searchResult = await searchResponse.json();
+      if (searchResult.files && searchResult.files.length > 0) {
+        return searchResult.files[0].id;
+      }
+    }
+
+    // Create new folder if not found
+    const metadata = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder'
+    };
+
+    const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(metadata)
+    });
+
+    if (!createResponse.ok) {
+      throw new Error(`Failed to create folder: ${createResponse.status}`);
+    }
+
+    const folder = await createResponse.json();
+    return folder.id;
+  } catch (error) {
+    console.error('Error getting/creating user folder:', error);
     throw error;
   }
 }
@@ -117,10 +167,13 @@ async function uploadFileToDrive(file, filename) {
       throw new Error('Google Drive sign-in failed - user not signed in');
     }
 
+    // Get or create user folder
+    const folderId = await getOrCreateUserFolder();
+
     const metadata = {
       name: filename,
       mimeType: file.type,
-      parents: ['YOUR_FOLDER_ID'] // Optional: specify a folder
+      parents: [folderId]
     };
 
     const form = new FormData();
@@ -148,9 +201,9 @@ async function uploadFileToDrive(file, filename) {
   } catch (error) {
     console.error('Upload to Drive error:', error);
     if (error.error === 'idpiframe_initialization_failed') {
-      alert('Google OAuth is not properly configured. Please check the console for setup instructions.');
+      alert(window.t('msg.googleOAuthConfig'));
     } else {
-      alert(`Upload failed: ${error.message}`);
+      alert(`${window.t('msg.uploadFailed')} ${error.message}`);
     }
     throw error;
   }
@@ -158,6 +211,12 @@ async function uploadFileToDrive(file, filename) {
 
 document.addEventListener("DOMContentLoaded", () => {
   const currentUser = JSON.parse(localStorage.getItem("currentUser"))
+
+  // Global media variables
+  let uploadedPhotos = []
+  let videoDataUrl = null
+  let videoFile = null
+  let videoFileId = null
 
   // Initialize Google API
   initGoogleAPI();
@@ -1034,7 +1093,7 @@ font-size: 1rem;
   const selectPhotosBtn = document.getElementById("select-photos-btn")
 
   // Store uploaded photos
-  let uploadedPhotos = []
+  // let uploadedPhotos = [] // Now declared globally
 
   if (selectPhotosBtn && photoInput) {
     selectPhotosBtn.addEventListener("click", () => {
@@ -1047,7 +1106,7 @@ font-size: 1rem;
       if (e.target.files.length > 0) {
         // Check if adding these files would exceed the 2 photo limit
         if (uploadedPhotos.length + e.target.files.length > 2) {
-          alert("You can only upload a maximum of 2 photos. Please remove some photos first or select fewer photos.")
+          alert(window.t('msg.photoLimit'))
           return
         }
 
@@ -1100,6 +1159,40 @@ font-size: 1rem;
             uploadedPhotos.push({
               id: photoId,
               data: imageData,
+              driveFileId: null  // Will be set after upload
+            })
+
+            // Upload the photo to Google Drive
+            // Convert base64 to blob for upload
+            const byteString = atob(imageData.split(",")[1])
+            const mimeString = imageData.split(",")[0].split(":")[1].split(";")[0]
+            const ab = new ArrayBuffer(byteString.length)
+            const ia = new Uint8Array(ab)
+            for (let j = 0; j < byteString.length; j++) {
+              ia[j] = byteString.charCodeAt(j)
+            }
+            const photoBlob = new Blob([ab], { type: mimeString })
+            const photoFile = new File([photoBlob], `photo_${photoId}.jpg`, { type: mimeString })
+
+            uploadFileToDrive(photoFile, `photo_${photoId}.jpg`).then(fileId => {
+              // Find the photo in uploadedPhotos and update its driveFileId
+              const photoIndex = uploadedPhotos.findIndex((photo) => photo.id === photoId)
+              if (photoIndex !== -1) {
+                uploadedPhotos[photoIndex].driveFileId = fileId
+                console.log(`Photo uploaded to Drive with ID: ${fileId}`)
+              }
+            }).catch(error => {
+              console.error(`Failed to upload photo ${photoId}:`, error)
+              // Remove from uploadedPhotos if upload fails
+              const photoIndex = uploadedPhotos.findIndex((photo) => photo.id === photoId)
+              if (photoIndex !== -1) {
+                uploadedPhotos.splice(photoIndex, 1)
+              }
+              // Remove from UI
+              previewItem.remove()
+              if (uploadedPhotos.length === 0) {
+                photoPreview.style.display = "none"
+              }
             })
           }
 
@@ -1141,17 +1234,19 @@ font-size: 1rem;
 
   // Video upload functionality
   const videoInput = document.getElementById("video-input")
-  const videoUploadArea = document.getElementById("video-upload-area")
+  const videoUploadArea = document.getElementById("video-upload")
   const selectVideoBtn = document.getElementById("select-video-btn")
-  const videoPlaceholder = document.getElementById("video-upload-area")
+  const videoPlaceholder = document.getElementById("video-upload")
   const videoPreviewContainer = document.getElementById("video-preview-container")
   const videoPreview = document.getElementById("video-preview")
   const changeVideoBtn = document.getElementById("change-video")
   const removeVideoBtn = document.getElementById("remove-video")
   const removeVideoBtnX = document.querySelector(".remove-video-btn")
 
-  // Store the video data URL
-  let videoDataUrl = null
+  // Store the video data URL and file
+  // let videoDataUrl = null // Now declared globally
+  // let videoFile = null // Now declared globally
+  // let videoFileId = null // Now declared globally
 
   // Click handler for the select video button
   if (selectVideoBtn && videoInput) {
@@ -1173,9 +1268,12 @@ font-size: 1rem;
 
     // Check file size (limit to 100MB)
     if (file.size > 100 * 1024 * 1024) {
-      alert("Video file is too large. Please select a file smaller than 100MB.")
+      alert(window.t('msg.videoTooLarge'))
       return
     }
+
+    // Store the file
+    videoFile = file
 
     // Create a URL for the video file
     videoDataUrl = URL.createObjectURL(file)
@@ -1184,6 +1282,16 @@ font-size: 1rem;
     videoPreview.src = videoDataUrl
     videoUploadArea.style.display = "none" // Fixed reference
     videoPreviewContainer.style.display = "block"
+
+    // Upload the video to Drive
+    uploadFileToDrive(file, `video.${file.name.split('.').pop()}`).then(fileId => {
+      videoFileId = fileId;
+      console.log(`Video uploaded to Drive with ID: ${fileId}`);
+    }).catch(error => {
+      console.error('Failed to upload video:', error);
+      // Reset video state if upload failed
+      removeVideo();
+    });
   }
 
   // Change video button handler
@@ -1198,6 +1306,8 @@ font-size: 1rem;
     if (!videoPreview || !videoPreviewContainer || !videoUploadArea) return
 
     videoDataUrl = null
+    videoFile = null
+    videoFileId = null
     videoPreview.src = ""
     videoPreviewContainer.style.display = "none"
     videoUploadArea.style.display = "block" // Fixed reference
@@ -1428,10 +1538,10 @@ font-size: 1rem;
         // Show the "No capsules" message
         noCapsules.style.display = "block"
         noCapsules.innerHTML = `
-        <h2 class="mb-4">No Active Capsules Yet</h2>
-        <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't created any time capsules yet. Create your first one now!</p>
-        <button class="btn btn-primary" id="create-first-capsule-btn">Create Your First Capsule</button>
-        <button class="btn btn-outline mt-3" id="view-archived-capsules-btn">View Archived Capsules</button>
+        <h2 class="mb-4">${window.t('view.noCapsules')}</h2>
+        <p style="color: #6b7280; margin-bottom: 1.5rem;">${window.t('view.noCapsulesSub')}</p>
+        <button class="btn btn-primary" id="create-first-capsule-btn">${window.t('view.createFirstCapsule')}</button>
+        <button class="btn btn-outline mt-3" id="view-archived-capsules-btn">${window.t('view.viewArchived')}</button>
       `
 
         // Add event listener for the create first capsule button
@@ -1474,7 +1584,7 @@ font-size: 1rem;
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            Letter
+            ${window.t('view.letter')}
           </div>
         `
         }
@@ -1485,7 +1595,7 @@ font-size: 1rem;
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            Photos
+            ${window.t('view.photos')}
           </div>
         `
         }
@@ -1496,7 +1606,7 @@ font-size: 1rem;
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            Video
+            ${window.t('view.video')}
           </div>
         `
         }
@@ -1522,7 +1632,7 @@ font-size: 1rem;
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
-          <span>Shared with you by ${capsule.userName}</span>
+          <span> ${capsule.userName}</span>
         </div>
       `
         }
@@ -1533,7 +1643,7 @@ font-size: 1rem;
             <div class="flex items-center gap-2 mb-1">
               <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
               <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                ${isDelivered ? "Delivered" : "Sealed"}
+                ${isDelivered ? window.t('view.status.delivered') : window.t('view.status.sealed')}
               </div>
             </div>
             
@@ -1544,7 +1654,7 @@ font-size: 1rem;
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span>
-                Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+                ${window.t('view.created')}: ${new Date(capsule.createdAt).toLocaleDateString()} | ${window.t('view.delivery')}: ${new Date(capsule.deliveryDate).toLocaleDateString()}
               </span>
             </div>
             
@@ -1561,18 +1671,18 @@ font-size: 1rem;
               ${!isDelivered ? "disabled" : ""} 
               style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
               title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
-              ${isDelivered ? "View" : "Sealed"}
+              ${isDelivered ? window.t('view.viewBtn') : window.t('view.status.sealed')}
             </button>
             ${
               !isSharedWithMe
                 ? `
               <button class="btn btn-danger btn-sm delete-capsule-btn" data-id="${capsule.id}">
-                Delete
+                ${window.t('view.deleteBtn')}
               </button>
             `
                 : `
               <button class="btn btn-secondary btn-sm archive-capsule-btn" data-id="${capsule.id}">
-                Archive
+                ${window.t('view.archiveBtn')}
               </button>
             `
             }
@@ -1641,7 +1751,7 @@ font-size: 1rem;
       }
     } catch (error) {
       console.error("Error loading capsules:", error)
-      alert("Failed to load your time capsules. Please try again later.")
+      alert(window.t('msg.loadFailed'))
     }
   }
 
@@ -1730,7 +1840,7 @@ font-size: 1rem;
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            Photos
+            ${window.t('view.photos')}
           </div>
         `
         }
@@ -1741,7 +1851,7 @@ font-size: 1rem;
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            Video
+            ${window.t('view.video')}
           </div>
         `
         }
@@ -1767,7 +1877,7 @@ font-size: 1rem;
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
-          <span>Shared with you by ${capsule.userName}</span>
+          <span> ${capsule.userName}</span>
         </div>
       `
         }
@@ -1778,7 +1888,7 @@ font-size: 1rem;
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="14" height="14">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
-          <span>Archived</span>
+          <span>${window.t('view.archived')}</span>
         </div>
       `
 
@@ -1788,7 +1898,7 @@ font-size: 1rem;
             <div class="flex items-center gap-2 mb-1">
               <h2 class="text-xl font-semibold text-forest-green-800">${capsule.title}</h2>
               <div class="capsule-status ${isDelivered ? "status-delivered" : "status-sealed"}">
-                ${isDelivered ? "Delivered" : "Sealed"}
+                ${isDelivered ? window.t('view.status.delivered') : window.t('view.status.sealed')}
               </div>
             </div>
             
@@ -1800,7 +1910,7 @@ font-size: 1rem;
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span>
-                Created: ${new Date(capsule.createdAt).toLocaleDateString()} | Delivery: ${new Date(capsule.deliveryDate).toLocaleDateString()}
+                ${window.t('view.created')}: ${new Date(capsule.createdAt).toLocaleDateString()} | ${window.t('view.delivery')}: ${new Date(capsule.deliveryDate).toLocaleDateString()}
               </span>
             </div>
             
@@ -1817,10 +1927,10 @@ font-size: 1rem;
               ${!isDelivered ? "disabled" : ""} 
               style="${!isDelivered ? "background-color: #e5e7eb; color: #6b7280; cursor: not-allowed;" : ""}"
               title="${!isDelivered ? "This capsule will be available on " + new Date(capsule.deliveryDate).toLocaleDateString() : "View this capsule"}">
-              ${isDelivered ? "View" : "Sealed"}
+              ${isDelivered ? window.t('view.viewBtn') : window.t('view.status.sealed')}
             </button>
             <button class="btn btn-primary btn-sm unarchive-capsule-btn" data-id="${capsule.id}">
-              Unarchive
+              ${window.t('view.unarchiveBtn')}
             </button>
           </div>
         </div>
@@ -1880,7 +1990,7 @@ font-size: 1rem;
       }
     } catch (error) {
       console.error("Error loading archived capsules:", error)
-      alert("Failed to load your archived capsules. Please try again later.")
+      alert(window.t('msg.archivedLoadFailed'))
     }
   }
 
@@ -1894,13 +2004,13 @@ font-size: 1rem;
       });
 
       // Show success message
-      alert("Capsule archived successfully")
+      alert(window.t('msg.archiveSuccess'))
 
       // Reload the entire page
       window.location.reload()
     } catch (error) {
       console.error("Error archiving capsule:", error)
-      alert("Failed to archive capsule. Please try again later.")
+      alert(window.t('msg.archiveFailed'))
     }
   }
 
@@ -1914,13 +2024,13 @@ font-size: 1rem;
       });
 
       // Show success message
-      alert("Capsule unarchived successfully")
+      alert(window.t('msg.unarchiveSuccess'))
 
       // Reload the entire page
       window.location.reload()
     } catch (error) {
       console.error("Error unarchiving capsule:", error)
-      alert("Failed to unarchive capsule. Please try again later.")
+      alert(window.t('msg.unarchiveFailed'))
     }
   }
 
@@ -1934,7 +2044,7 @@ font-size: 1rem;
       const message = document.getElementById("message")?.value
 
       if (!title || !deliveryDate) {
-        alert("Please provide a title and delivery date.")
+        alert(window.t('msg.titleRequired'))
         return
       }
 
@@ -1950,82 +2060,25 @@ font-size: 1rem;
         // Generate a unique ID for the capsule
         const capsuleId = `capsule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-        // Create FormData for file uploads
-        const formData = new FormData()
-        formData.append("title", title)
-        formData.append("deliveryDate", new Date(deliveryDate).toISOString())
-        formData.append("message", message || "")
-        formData.append("userId", currentUser.id)
-        formData.append("userName", currentUser.name)
-
-        // Add recipients
-        if (selectedRecipients.length > 0) {
-          formData.append("recipients", JSON.stringify(selectedRecipients))
+        // Check if photos are still uploading
+        const photosStillUploading = uploadedPhotos.some(photo => photo.driveFileId === null);
+        if (uploadedPhotos.length > 0 && photosStillUploading) {
+          alert("Please wait for all photos to finish uploading before creating the capsule.")
+          return
         }
 
-        // Add photos if any
-        if (uploadedPhotos.length > 0) {
-          for (let i = 0; i < uploadedPhotos.length; i++) {
-            const photoData = uploadedPhotos[i].data // Access the data property
-            // Convert base64 to blob
-            const byteString = atob(photoData.split(",")[1])
-            const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0]
-            const ab = new ArrayBuffer(byteString.length)
-            const ia = new Uint8Array(ab)
-            for (let j = 0; j < byteString.length; j++) {
-              ia[j] = byteString.charCodeAt(j)
-            }
-            const blob = new Blob([ab], { type: mimeString })
-
-            // Use 'photo' as the field name for ALL photos
-            formData.append("photo", blob, `photo_${Date.now()}_${i}.jpg`)
-          }
-          formData.append("hasImages", "true")
-        } else {
-          formData.append("hasImages", "false")
-        }
-
-        // Add video if uploaded
-        if (videoDataUrl) {
-          try {
-            // Fetch the blob from the URL
-            const response = await fetch(videoDataUrl)
-            const videoBlob = await response.blob()
-            formData.append("video", videoBlob, `video_${Date.now()}.webm`)
-            formData.append("hasVideo", "true")
-          } catch (videoError) {
-            console.error("Error processing video:", videoError)
-            formData.append("hasVideo", "false")
-          }
-        } else {
-          formData.append("hasVideo", "false")
-        }
-
-        // Upload photos to Google Drive and get file IDs
+        // Get photo file IDs from already uploaded photos
         let photoFileIds = [];
         if (uploadedPhotos.length > 0) {
-          for (let i = 0; i < uploadedPhotos.length; i++) {
-            const photoData = uploadedPhotos[i].data;
-            const byteString = atob(photoData.split(",")[1]);
-            const mimeString = photoData.split(",")[0].split(":")[1].split(";")[0];
-            const ab = new ArrayBuffer(byteString.length);
-            const ia = new Uint8Array(ab);
-            for (let j = 0; j < byteString.length; j++) {
-              ia[j] = byteString.charCodeAt(j);
-            }
-            const blob = new Blob([ab], { type: mimeString });
-
-            const fileId = await uploadFileToDrive(blob, `photo_${i}.jpg`);
-            photoFileIds.push(fileId);
-          }
+          photoFileIds = uploadedPhotos
+            .filter(photo => photo.driveFileId)
+            .map(photo => photo.driveFileId);
         }
 
-        // Upload video to Google Drive
-        let videoFileId = null;
-        if (videoDataUrl) {
-          const response = await fetch(videoDataUrl);
-          const videoBlob = await response.blob();
-          videoFileId = await uploadFileToDrive(videoBlob, `video.webm`);
+        // Get video file ID from already uploaded video
+        let capsuleVideoFileId = null;
+        if (videoFileId) {
+          capsuleVideoFileId = videoFileId;
         }
 
         // Save capsule data to Firestore
@@ -2038,9 +2091,9 @@ font-size: 1rem;
           userName: currentUser.name,
           recipients: selectedRecipients.map(r => typeof r === 'string' ? r : r.id),
           photoFileIds,
-          videoFileId,
+          videoFileId: capsuleVideoFileId,
           hasImages: photoFileIds.length > 0,
-          hasVideo: videoFileId !== null,
+          hasVideo: capsuleVideoFileId !== null,
           isArchived: false
         });
 
@@ -2054,7 +2107,7 @@ font-size: 1rem;
           }
         }
 
-        alert("Time Capsule created successfully!");
+        alert(window.t('msg.createSuccess'));
 
         // Reset form
         createCapsuleForm.reset()
@@ -2064,6 +2117,8 @@ font-size: 1rem;
         }
         uploadedPhotos = []
         videoDataUrl = null
+        videoFile = null
+        videoFileId = null
         if (videoPreviewContainer) videoPreviewContainer.style.display = "none"
         if (videoUploadArea) videoUploadArea.style.display = "block"
 
@@ -2076,7 +2131,7 @@ font-size: 1rem;
         loadCapsules()
       } catch (error) {
         console.error("Error creating capsule:", error)
-        alert(error.message || "Failed to create time capsule. Please try again.")
+        alert(error.message || window.t('msg.createFailed'))
       } finally {
         // Re-enable submit button
         if (submitButton) {
@@ -2355,13 +2410,13 @@ font-size: 1rem;
           // Close modal
           closeDeleteModal()
 
-          alert("Time Capsule deleted successfully.")
+          alert(window.t('msg.deleteSuccess'))
 
           // Reload the entire page
           window.location.reload()
         } catch (error) {
           console.error("Error deleting capsule:", error)
-          alert("Failed to delete time capsule. Please try again later.")
+          alert(window.t('msg.deleteFailed'))
         }
       }
     })
@@ -2675,7 +2730,7 @@ font-size: 1rem;
         localStorage.setItem("timeCapsules", JSON.stringify(updatedCapsules))
 
         // Show success message
-        alert("Profile updated successfully!")
+        alert(window.t('msg.profileUpdateSuccess'))
 
         // Reload the page
         window.location.reload()
